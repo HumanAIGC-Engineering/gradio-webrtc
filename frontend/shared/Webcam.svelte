@@ -452,6 +452,9 @@
 		width: 50%;
 		height: 50%;
 	}
+	.video-wrap video:last-child {
+		margin-left: 6px;
+	}
 
 	.button-wrap {
 		position: absolute;
