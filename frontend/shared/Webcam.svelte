@@ -62,9 +62,9 @@
 	};
 
 	export let include_audio: boolean;
+	export let show_local_video: boolean;
 	export let i18n: I18nFormatter;
 
-	$: isKeepLocal = mode === "send-receive" && include_audio
 	let volumeMuted = false
 	let micMuted = false
 	const handel_volume_mute = () => {
@@ -98,7 +98,7 @@
 		} else {
 			videoDeviceId = device_id
 		}
-		const node = isKeepLocal ? local_video_source : video_source; 
+		const node = show_local_video ? local_video_source : video_source; 
 		await get_video_stream(audioDeviceId ? {
 				deviceId: { exact: audioDeviceId },
 		}: include_audio, node, videoDeviceId, track_constraints).then(
@@ -121,7 +121,7 @@
 
 	async function access_webcam(): Promise<void> {
 		try {
-			const node = isKeepLocal ? local_video_source : video_source; 
+			const node = show_local_video ? local_video_source : video_source; 
 			get_video_stream(include_audio, node, null, track_constraints)
 				.then(async (local_stream) => {
 					webcam_accessed = true;
@@ -257,7 +257,7 @@
 	{/if}
 	<!-- svelte-ignore a11y-media-has-caption -->
 	<!-- need to suppress for video streaming https://github.com/sveltejs/svelte/issues/5967 -->
-	 {#if isKeepLocal}
+	 {#if show_local_video}
 	 	<div class="video-wrap">
         	<video
             	bind:this={local_video_source}

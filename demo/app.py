@@ -100,6 +100,7 @@ with gr.Blocks(css=css) as demo:
             label="Local",
             modality="audio-video",
             mode="send-receive",
+            show_local_video=True,
             elem_id="video-source",
         )
         webrtc.stream(

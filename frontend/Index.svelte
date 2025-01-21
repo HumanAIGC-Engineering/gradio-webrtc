@@ -33,6 +33,7 @@
 	export let time_limit: number | null = null;
 	export let modality: "video" | "audio" | "audio-video" = "video";
 	export let mode: "send-receive" | "receive" | "send" = "send-receive";
+	export let show_local_video = false;
 	export let rtp_params: RTCRtpParameters = {} as RTCRtpParameters;
 	export let track_constraints: MediaTrackConstraints = {};
 	export let icon: string | undefined = undefined;
@@ -107,6 +108,7 @@
 			{show_label}
 			active_source={"webcam"}
 			include_audio={modality === "audio-video"}
+			show_local_video={mode === "send-receive" && modality === "audio-video" && show_local_video}
 			{server}
 			{rtc_configuration}
 			{time_limit}
