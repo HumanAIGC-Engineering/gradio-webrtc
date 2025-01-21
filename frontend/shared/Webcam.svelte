@@ -261,7 +261,6 @@
 	 	<div class="video-wrap">
         	<video
             	bind:this={local_video_source}
-            	class="original-video-source"
             	class:hide={!webcam_accessed}
             	autoplay={true}
             	playsinline={true}
@@ -272,7 +271,7 @@
             	class:flip={stream_state != "open" ||
                 	(stream_state === "open" && include_audio)}
             	autoplay={true}
-							muted={volumeMuted}
+				muted={volumeMuted}
             	playsinline={true}
         	/>
     	</div>
