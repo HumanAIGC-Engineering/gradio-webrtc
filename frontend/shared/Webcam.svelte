@@ -22,7 +22,9 @@
 
 	let video_source: HTMLVideoElement;
 	let available_video_devices: MediaDeviceInfo[] = [];
+	let available_audio_devices: MediaDeviceInfo[] = [];
 	let selected_device: MediaDeviceInfo | null = null;
+	let selected_audio_device: MediaDeviceInfo | null = null;
 	let _time_limit: number | null = null;
     export let time_limit: number | null = null;
 	let stream_state: "open" | "waiting" | "closed" = "closed";
@@ -72,14 +74,28 @@
 	const handle_device_change = async (event: InputEvent): Promise<void> => {
 		const target = event.target as HTMLInputElement;
 		const device_id = target.value;
+		let videoDeviceId
+		let audioDeviceId
+		if (include_audio && available_audio_devices.find(audio_device => audio_device.deviceId === device_id)) {
+			audioDeviceId = device_id
+		} else {
+			videoDeviceId = device_id
+		}
 
-		await get_video_stream(include_audio, video_source, device_id, track_constraints).then(
+		await get_video_stream(audioDeviceId ? {
+				deviceId: { exact: audioDeviceId },
+		}: include_audio, video_source, videoDeviceId, track_constraints).then(
 			async (local_stream) => {
 				stream = local_stream;
 				selected_device =
 					available_video_devices.find(
-						(device) => device.deviceId === device_id
+						(device) => device.deviceId === videoDeviceId
 					) || null;
+				selected_audio_device = include_audio ?
+					available_audio_devices.find(
+						(device) => device.deviceId === audioDeviceId
+					) || null
+					: null;
 				options_open = false;
 			}
 		);
@@ -90,21 +106,29 @@
 			get_video_stream(include_audio, video_source, null, track_constraints)
 				.then(async (local_stream) => {
 					webcam_accessed = true;
-					available_video_devices = await get_devices();
+					let available_devices = await get_devices();
 					stream = local_stream;
+					return available_devices
 				})
-				.then(() => set_available_devices(available_video_devices))
+				// .then(() => set_available_devices(available_video_devices))
 				.then((devices) => {
-					available_video_devices = devices;
+					available_video_devices = set_available_devices(devices, "videoinput");
+					available_audio_devices = set_available_devices(devices, "audioinput");
 
 					const used_devices = stream
 						.getTracks()
-						.map((track) => track.getSettings()?.deviceId)[0];
-
-					selected_device = used_devices
-						? devices.find((device) => device.deviceId === used_devices) ||
-							available_video_devices[0]
-						: available_video_devices[0];
+						.map((track) => track.getSettings()?.deviceId);
+					used_devices.forEach((device_id) => {
+						const used_device = devices.find(
+							(device) => device.deviceId === device_id
+						);
+						if (used_device && used_device?.kind.includes('video')) {
+							selected_device = used_device;
+						} else if (used_device && used_device?.kind.includes('audio')) {
+							selected_audio_device = used_device;
+						}
+					});
+					!selected_device && (selected_device = available_video_devices[0])
 				});
 
 			if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -266,31 +290,62 @@
 			{/if}
 		</div>
 		{#if options_open && selected_device}
-			<select
-				class="select-wrap"
-				aria-label="select source"
+			<div
+				class="select-container"
 				use:click_outside={handle_click_outside}
-				on:change={handle_device_change}
 			>
-				<button
-					class="inset-icon"
-					on:click|stopPropagation={() => (options_open = false)}
+				<select
+					class="select-wrap"
+					aria-label="select source"
+					on:change={handle_device_change}
 				>
-					<DropdownArrow />
-				</button>
-				{#if available_video_devices.length === 0}
-					<option value="">{i18n("common.no_devices")}</option>
-				{:else}
-					{#each available_video_devices as device}
-						<option
-							value={device.deviceId}
-							selected={selected_device.deviceId === device.deviceId}
-						>
-							{device.label}
-						</option>
-					{/each}
+					<button
+						class="inset-icon"
+						on:click|stopPropagation={() => (options_open = false)}
+					>
+						<DropdownArrow />
+					</button>
+					{#if available_video_devices.length === 0}
+						<option value="">{i18n("common.no_devices")}</option>
+					{:else}
+						{#each available_video_devices as device}
+							<option
+								value={device.deviceId}
+								selected={selected_device.deviceId === device.deviceId}
+							>
+								{device.label}
+							</option>
+						{/each}
+					{/if}
+				</select>
+				{#if include_audio=== true}
+				<select
+					class="select-wrap"
+					aria-label="select source"
+					on:change={handle_device_change}
+				>
+					<button
+						class="inset-icon"
+						on:click|stopPropagation={() => (options_open = false)}
+					>
+						<DropdownArrow />
+					</button>
+					{#if available_audio_devices.length === 0}
+						<option value="">{i18n("common.no_devices")}</option>
+					{:else}
+						{#each available_audio_devices as device}
+							<option
+								value={device.deviceId}
+								selected={selected_audio_device.deviceId === device.deviceId}
+							>
+								{device.label}
+							</option>
+						{/each}
+					{/if}
+				</select>
 				{/if}
-			</select>
+			</div>
+
 		{/if}
 	{/if}
 </div>
@@ -376,17 +431,23 @@
 	.flip {
 		transform: scaleX(-1);
 	}
-
+	.select-container {
+		width: 95%;
+		left: 50%;
+		text-align: center;
+		transform: translate(-50%, 0);
+		position: absolute;
+		bottom: var(--size-2);
+	}
 	.select-wrap {
 		-webkit-appearance: none;
 		-moz-appearance: none;
 		appearance: none;
 		color: var(--button-secondary-text-color);
 		background-color: transparent;
-		width: 95%;
+		
 		font-size: var(--text-md);
-		position: absolute;
-		bottom: var(--size-2);
+
 		background-color: var(--block-background-fill);
 		box-shadow: var(--shadow-drop-lg);
 		border-radius: var(--radius-xl);
@@ -396,8 +457,7 @@
 		line-height: var(--size-4);
 		white-space: nowrap;
 		text-overflow: ellipsis;
-		left: 50%;
-		transform: translate(-50%, 0);
+
 		max-width: var(--size-52);
 	}
 

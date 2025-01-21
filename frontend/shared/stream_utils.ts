@@ -8,7 +8,7 @@ export function handle_error(error: string): void {
 
 export function set_local_stream(
   local_stream: MediaStream | null,
-  video_source: HTMLVideoElement,
+  video_source: HTMLVideoElement
 ): void {
   video_source.srcObject = local_stream;
   video_source.muted = true;
@@ -16,10 +16,10 @@ export function set_local_stream(
 }
 
 export async function get_video_stream(
-  include_audio: boolean,
+  include_audio: boolean | { deviceId: { exact: string } },
   video_source: HTMLVideoElement,
   device_id?: string,
-  track_constraints?: MediaTrackConstraints,
+  track_constraints?: MediaTrackConstraints
 ): Promise<MediaStream> {
   const fallback_constraints = track_constraints || {
     width: { ideal: 500 },
@@ -43,10 +43,10 @@ export async function get_video_stream(
 
 export function set_available_devices(
   devices: MediaDeviceInfo[],
-  kind: "videoinput" | "audioinput" = "videoinput",
+  kind: "videoinput" | "audioinput" = "videoinput"
 ): MediaDeviceInfo[] {
   const cameras = devices.filter(
-    (device: MediaDeviceInfo) => device.kind === kind,
+    (device: MediaDeviceInfo) => device.kind === kind
   );
 
   return cameras;
