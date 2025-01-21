@@ -38,7 +38,7 @@ class GeminiHandler(AsyncAudioVideoStreamHandler):
             expected_layout,
             output_sample_rate,
             output_frame_size,
-            input_sample_rate=16000,
+            input_sample_rate=24000,
         )
         self.audio_queue = asyncio.Queue()
         self.video_queue = asyncio.Queue()
@@ -69,13 +69,6 @@ class GeminiHandler(AsyncAudioVideoStreamHandler):
     async def video_emit(self) -> VideoEmitType:
         return await self.video_queue.get()
 
-    async def generator(self):
-        while not self.quit.is_set():
-            turn = self.session.receive()
-            async for response in turn:
-                if data := response.data:
-                    yield data
-
     async def receive(self, frame: tuple[int, np.ndarray]) -> None:
         frame_size, array = frame
         self.audio_queue.put_nowait(array)
@@ -95,19 +88,19 @@ class GeminiHandler(AsyncAudioVideoStreamHandler):
 
 
 css = """
-#video-source {max-width: 600px !important; max-height: 600 !important;}
+#video-source {max-width: 1500px !important; max-height: 600px !important;}
 """
 
 with gr.Blocks(css=css) as demo:
 
     with gr.Column():
         webrtc = WebRTC(
-            label="Video Chat",
+            width=1500,
+            height=500,
+            label="Local",
             modality="audio-video",
             mode="send-receive",
             elem_id="video-source",
-            pulse_color="rgb(35, 157, 225)",
-            icon_button_color="rgb(35, 157, 225)",
         )
         webrtc.stream(
             GeminiHandler(),
