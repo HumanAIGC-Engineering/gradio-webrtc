@@ -64,7 +64,7 @@
 	export let include_audio: boolean;
 	export let i18n: I18nFormatter;
 
-	let isKeepLocal = mode === "send-receive" && include_audio
+	$: isKeepLocal = mode === "send-receive" && include_audio
 	let volumeMuted = false
 	let micMuted = false
 	const handel_volume_mute = () => {
