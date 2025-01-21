@@ -449,8 +449,9 @@
 	}
 
 	.video-wrap video {
-		width: 50%;
+		width: calc(50% - 3px);
 		height: 50%;
+		border-radius: var(--radius-sm);
 	}
 	.video-wrap video:last-child {
 		margin-left: 6px;
