@@ -20,6 +20,7 @@
     import { start, stop } from "./webrtc_utils";
     import PulsingIcon from "./PulsingIcon.svelte";
 
+	let local_video_source: HTMLVideoElement;
 	let video_source: HTMLVideoElement;
 	let available_video_devices: MediaDeviceInfo[] = [];
 	let selected_device: MediaDeviceInfo | null = null;
@@ -59,6 +60,8 @@
 	export let include_audio: boolean;
 	export let i18n: I18nFormatter;
 
+	let isKeepLocal = mode === "send-receive" && include_audio
+
 	const dispatch = createEventDispatcher<{
 		tick: undefined;
 		error: string;
@@ -73,7 +76,8 @@
 		const target = event.target as HTMLInputElement;
 		const device_id = target.value;
 
-		await get_video_stream(include_audio, video_source, device_id, track_constraints).then(
+		const node = isKeepLocal ? local_video_source : video_source; 
+		await get_video_stream(include_audio, node, device_id, track_constraints).then(
 			async (local_stream) => {
 				stream = local_stream;
 				selected_device =
@@ -87,7 +91,8 @@
 
 	async function access_webcam(): Promise<void> {
 		try {
-			get_video_stream(include_audio, video_source, null, track_constraints)
+			const node = isKeepLocal ? local_video_source : video_source; 
+			get_video_stream(include_audio, node, null, track_constraints)
 				.then(async (local_stream) => {
 					webcam_accessed = true;
 					available_video_devices = await get_devices();
@@ -123,6 +128,7 @@
 	let stream: MediaStream;
 
 	let webcam_accessed = false;
+	let webcam_received = false;
     let pc: RTCPeerConnection;
 	export let webrtc_id;
 
@@ -151,14 +157,17 @@
 			webrtc_id = Math.random().toString(36).substring(2);
             start(stream, pc, mode === "send" ? null: video_source, server.offer, webrtc_id, "video", on_change_cb, rtp_params).then((connection) => {
 				pc = connection;
+				webcam_received = true;
 			}).catch(() => {
                 console.info("catching")
                 stream_state = "closed";
+				webcam_received = false;
                 dispatch("error", "Too many concurrent users. Come back later!");
             });
         } else {
             stop(pc);
             stream_state = "closed";
+			webcam_received = false;
 			_time_limit = null;
             await access_webcam();
         }
@@ -210,13 +219,35 @@
 	{/if}
 	<!-- svelte-ignore a11y-media-has-caption -->
 	<!-- need to suppress for video streaming https://github.com/sveltejs/svelte/issues/5967 -->
-	<video
-		bind:this={video_source}
-		class:hide={!webcam_accessed}
-        class:flip={(stream_state != "open") || (stream_state === "open" && include_audio)}
-        autoplay={true}
-		playsinline={true}
-	/>
+	 {#if isKeepLocal}
+	 	<div class="video-wrap">
+        	<video
+            	bind:this={local_video_source}
+            	class="original-video-source"
+            	class:hide={!webcam_accessed}
+            	autoplay={true}
+            	playsinline={true}
+        	/>
+        	<video
+            	bind:this={video_source}
+            	class:hide={!webcam_received}
+            	class:flip={stream_state != "open" ||
+                	(stream_state === "open" && include_audio)}
+            	autoplay={true}
+            	playsinline={true}
+        	/>
+    	</div>
+	 {:else}
+	 	<video
+	 		bind:this={video_source}
+	 		class:hide={!webcam_accessed}
+	 		class:flip={(stream_state != "open") || (stream_state === "open" && include_audio)}
+	 		autoplay={true}
+	 		playsinline={true}
+ 		/>
+	 {/if}
+	
+
 	<!-- svelte-ignore a11y-missing-attribute -->
 	{#if !webcam_accessed}
 		<div
@@ -305,6 +336,12 @@
 	.hide {
 		display: none;
 	}
+
+	.video-wrap {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
 
 	video {
 		width: var(--size-full);
