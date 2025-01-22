@@ -17,7 +17,7 @@ def check_node_installed():
         print("Node.js is not installed or not found in PATH.")
         return False
 
-def install_wheel(whl_file, force_reinstall=False):
+def install_wheel(whl_file, force_reinstall=True):
     if force_reinstall:
         subprocess.run(['pip', 'install', '--force-reinstall', whl_file])
         print(f"Force reinstallation of {whl_file} successful.")

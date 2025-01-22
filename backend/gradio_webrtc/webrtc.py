@@ -703,7 +703,7 @@ class WebRTC(Component):
         time_limit: float | None = None,
         mode: Literal["send-receive", "receive", "send"] = "send-receive",
         modality: Literal["video", "audio", "audio-video"] = "video",
-        show_local_video: bool = False,
+        show_local_video: bool = True, # TODO 先默认打开
         rtp_params: dict[str, Any] | None = None,
         icon: str | None = None,
         icon_button_color: str | None = None,
