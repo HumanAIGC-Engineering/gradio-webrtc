@@ -3,6 +3,11 @@ import os
 import glob
 import shutil
 
+# 获取当前脚本所在的目录
+script_dir = os.path.dirname(os.path.abspath(__file__))
+
+# 切换到当前脚本所在的目录
+os.chdir(script_dir)
 
 # 移除 gradio_webrtc 包
 subprocess.run(['pip', 'uninstall', '-y', 'gradio_webrtc'])
