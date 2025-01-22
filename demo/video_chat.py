@@ -61,7 +61,7 @@ class GeminiHandler(AsyncAudioVideoStreamHandler):
         #         await self.session.send(encode_image(frame))
         #         if self.latest_args[2] is not None:
         #             await self.session.send(encode_image(self.latest_args[2]))
-        print(frame.shape)
+        # print(frame.shape)
         newFrame = np.array(frame)
         newFrame[0:, :, 0] = 255 - newFrame[0:, :, 0]
         self.video_queue.put_nowait(newFrame)

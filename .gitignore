@@ -1,5 +1,6 @@
 .eggs/
-dist/
+dist/*.gz
+
 *.pyc
 __pycache__/
 *.py[cod]
