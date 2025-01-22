@@ -67,7 +67,7 @@
 
 	let volumeMuted = false
 	let micMuted = false
-	const handel_volume_mute = () => {
+	const handle_volume_mute = () => {
 		volumeMuted = !volumeMuted
 	}
 	const handle_mic_mute = () => {
@@ -349,7 +349,7 @@
 				</button>
 				<button
 					class="icon"
-					on:click={handel_volume_mute}
+					on:click={handle_volume_mute}
 					aria-label="select input source"
 				>
 					{#if volumeMuted}
