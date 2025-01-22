@@ -12,7 +12,7 @@
 	export let label: string | undefined = undefined;
 	export let show_label = true;
 	export let include_audio: boolean;
-	export let show_local_video: boolean;
+	export let show_local_video: string | undefined;
 	export let i18n: I18nFormatter;
 	export let active_source: "webcam" | "upload" = "webcam";
 	export let handle_reset_value: () => void = () => {};
