@@ -62,7 +62,7 @@
 	};
 
 	export let include_audio: boolean;
-	export let show_local_video: string;
+	export let show_local_video: string | undefined;
 	export let i18n: I18nFormatter;
 
 	let volumeMuted = false

@@ -33,7 +33,7 @@
 	export let time_limit: number | null = null;
 	export let modality: "video" | "audio" | "audio-video" = "video";
 	export let mode: "send-receive" | "receive" | "send" = "send-receive";
-	export let show_local_video = false;
+	export let show_local_video: string | undefined = undefined;
 	export let rtp_params: RTCRtpParameters = {} as RTCRtpParameters;
 	export let track_constraints: MediaTrackConstraints = {};
 	export let icon: string | undefined = undefined;
