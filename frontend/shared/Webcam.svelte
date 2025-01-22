@@ -62,7 +62,7 @@
 	};
 
 	export let include_audio: boolean;
-	export let show_local_video: boolean;
+	export let show_local_video: string;
 	export let i18n: I18nFormatter;
 
 	let volumeMuted = false
@@ -258,20 +258,23 @@
 	<!-- svelte-ignore a11y-media-has-caption -->
 	<!-- need to suppress for video streaming https://github.com/sveltejs/svelte/issues/5967 -->
 	 {#if show_local_video}
-	 	<div class="video-wrap">
+	 	<div class="video-wrap"  class:picinpic={show_local_video === 'picture-in-picture'} class:left-right={show_local_video === 'left-right'} class:hide={!webcam_accessed}>
         	<video
+							class="local-video"
             	bind:this={local_video_source}
             	class:hide={!webcam_accessed}
             	autoplay={true}
             	playsinline={true}
+							muted
         	/>
         	<video
+							class="remote-video"
             	bind:this={video_source}
             	class:hide={!webcam_received}
             	class:flip={stream_state != "open" ||
                 	(stream_state === "open" && include_audio)}
             	autoplay={true}
-				muted={volumeMuted}
+							muted={volumeMuted}
             	playsinline={true}
         	/>
     	</div>
@@ -431,15 +434,19 @@
 		height: var(--size-full);
 	}
 
+
+
+	.video-wrap {
+		height: 100%;
+		width: 100%;
+		position: relative;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+  }
 	.hide {
 		display: none;
 	}
-
-	.video-wrap {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-    }
 
 	video {
 		width: var(--size-full);
@@ -447,13 +454,28 @@
 		object-fit: cover;
 	}
 
-	.video-wrap video {
+	.video-wrap.left-right video {
 		width: calc(50% - 3px);
 		height: 50%;
 		border-radius: var(--radius-sm);
 	}
-	.video-wrap video:last-child {
+	.video-wrap.left-right video:last-child {
 		margin-left: 6px;
+	}
+	.video-wrap.picinpic .remote-video {
+		width: var(--size-full);
+		height: var(--size-full);
+		object-fit: contain;
+	}
+	.video-wrap.picinpic .local-video {
+		position:absolute;
+		left: 5%;
+		bottom: 15%;
+		/* width: 20%; */
+		object-fit: contain;
+		object-position: left;
+		height: 20%;
+		z-index: 1;
 	}
 
 	.button-wrap {

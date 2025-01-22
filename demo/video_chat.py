@@ -95,12 +95,12 @@ with gr.Blocks(css=css) as demo:
 
     with gr.Column():
         webrtc = WebRTC(
-            width=1500,
-            height=500,
-            label="Local",
+            width=500,
+            height=1500,
+            label="Video Chat",
             modality="audio-video",
             mode="send-receive",
-            show_local_video=True,
+            show_local_video='picture-in-picture',
             elem_id="video-source",
         )
         webrtc.stream(

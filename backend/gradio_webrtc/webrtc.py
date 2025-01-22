@@ -703,7 +703,7 @@ class WebRTC(Component):
         time_limit: float | None = None,
         mode: Literal["send-receive", "receive", "send"] = "send-receive",
         modality: Literal["video", "audio", "audio-video"] = "video",
-        show_local_video: bool = True, # TODO 先默认打开
+        show_local_video: Literal['picture-in-picture', 'left-right', None] = None,
         rtp_params: dict[str, Any] | None = None,
         icon: str | None = None,
         icon_button_color: str | None = None,
@@ -735,7 +735,7 @@ class WebRTC(Component):
             time_limit: Maximum duration in seconds for recording.
             mode: WebRTC mode - "send-receive", "receive", or "send".
             modality: Type of media - "video" or "audio".
-            show_local_video: in send-receive mode and audio-video modality, whether to show the local video stream.
+            show_local_video: in send-receive mode and audio-video modality, whether to show the local video stream. - "picture-in-picture" or "left-right".
             rtp_params: See https://developer.mozilla.org/en-US/docs/Web/API/RTCRtpSender/setParameters. If you are changing the video resolution, you can set this to {"degradationPreference": "maintain-framerate"} to keep the frame rate consistent.
             icon: Icon to display on the button instead of the wave animation. The icon should be a path/url to a .svg/.png/.jpeg file.
             icon_button_color: Color of the icon button. Default is var(--color-accent) of the demo theme.
