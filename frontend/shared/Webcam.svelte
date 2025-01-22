@@ -260,7 +260,8 @@
 	 {#if show_local_video}
 	 	<div class="video-wrap"  class:picinpic={show_local_video === 'picture-in-picture'} class:left-right={show_local_video === 'left-right'} class:hide={!webcam_accessed}>
         	<video
-							class="local-video"
+							class:local-video={stream_state === "open"}
+							class:remote-video={stream_state !== "open"}
             	bind:this={local_video_source}
             	class:hide={!webcam_accessed}
             	autoplay={true}
@@ -270,7 +271,7 @@
         	<video
 							class="remote-video"
             	bind:this={video_source}
-            	class:hide={!webcam_received}
+            	class:hide={!webcam_received || stream_state != "open"}
             	class:flip={stream_state != "open" ||
                 	(stream_state === "open" && include_audio)}
             	autoplay={true}
