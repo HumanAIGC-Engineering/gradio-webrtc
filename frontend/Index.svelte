@@ -8,7 +8,7 @@
 	import StaticVideo from "./shared/StaticVideo.svelte";
 	import StaticAudio from "./shared/StaticAudio.svelte";
 	import InteractiveAudio from "./shared/InteractiveAudio.svelte";
-
+	import VideoChat from './shared/VideoChat.svelte'
 	export let elem_id = "";
 	export let elem_classes: string[] = [];
 	export let visible = true;
@@ -34,6 +34,7 @@
 	export let modality: "video" | "audio" | "audio-video" = "video";
 	export let mode: "send-receive" | "receive" | "send" = "send-receive";
 	export let show_local_video: string | undefined = undefined;
+	export let video_chat: boolean = false;
 	export let rtp_params: RTCRtpParameters = {} as RTCRtpParameters;
 	export let track_constraints: MediaTrackConstraints = {};
 	export let icon: string | undefined = undefined;
@@ -53,7 +54,24 @@
 	$: console.log("value", value);
 </script>
 
-<Block
+{#if video_chat}
+	<Block
+	{visible}
+	variant={"solid"}
+	border_mode={dragging ? "focus" : "base"}
+	padding={false}
+	{elem_id}
+	{elem_classes}
+	{height}
+	{width}
+	{container}
+	{scale}
+	{min_width}
+	allow_overflow={false}>
+		<VideoChat></VideoChat>
+	</Block>
+
+{:else}<Block
 	{visible}
 	variant={"solid"}
 	border_mode={dragging ? "focus" : "base"}
@@ -158,3 +176,4 @@
 		/>
 	{/if}
 </Block>
+{/if}
