@@ -277,7 +277,7 @@
 							class:local-video={stream_state === "open"}
 							class:remote-video={stream_state !== "open"}
             	bind:this={local_video_source}
-            	class:hide={!webcam_accessed}
+            	class:hide={!webcam_accessed || cameraOff}
             	autoplay={true}
             	playsinline={true}
 							muted
