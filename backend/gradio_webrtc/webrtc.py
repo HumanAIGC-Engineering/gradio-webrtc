@@ -762,6 +762,10 @@ class WebRTC(Component):
             "waiting": "",
             **(button_labels or {}),
         }
+        if video_chat is True:
+            # ensure modality and mode when video_chat is True
+            self.modality = "audio-video"
+            self.mode = "send-receive"
         if track_constraints is None and modality == "audio":
             track_constraints = {
                 "echoCancellation": True,
@@ -797,10 +801,7 @@ class WebRTC(Component):
             }
         self.track_constraints = track_constraints
         self.event_handler: Callable | StreamHandler | None = None
-        if video_chat is True:
-            # ensure modality and mode when video_chat is True
-            self.modality = "audio-video"
-            self.mode = "send-receive"
+
         super().__init__(
             label=label,
             every=every,

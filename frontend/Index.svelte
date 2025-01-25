@@ -68,7 +68,22 @@
 	{scale}
 	{min_width}
 	allow_overflow={false}>
-		<VideoChat></VideoChat>
+		<VideoChat {server} bind:webrtc_id={value}
+		on:clear={() => gradio.dispatch("clear")}
+		on:play={() => gradio.dispatch("play")}
+		on:pause={() => gradio.dispatch("pause")}
+		on:upload={() => gradio.dispatch("upload")}
+		on:stop={() => gradio.dispatch("stop")}
+		on:end={() => gradio.dispatch("end")}
+		on:start_recording={() => gradio.dispatch("start_recording")}
+		on:stop_recording={() => gradio.dispatch("stop_recording")}
+		on:tick={() => gradio.dispatch("tick")}
+		on:error={({ detail }) => gradio.dispatch("error", detail)}
+		i18n={gradio.i18n}
+		stream_handler={(...args) => gradio.client.stream(...args)}
+		{on_change_cb} {rtc_configuration}
+		on:tick={() => gradio.dispatch("tick")}
+		on:error={({ detail }) => gradio.dispatch("error", detail)}></VideoChat>
 	</Block>
 
 {:else}<Block
