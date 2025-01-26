@@ -7,6 +7,7 @@
     export let icon: string | ComponentType = undefined;
     export let icon_button_color: string = "var(--color-accent)";
     export let pulse_color: string = "var(--color-accent)";
+    
 
     let audioContext: AudioContext;
     let analyser: AnalyserNode;

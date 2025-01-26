@@ -10,6 +10,7 @@
   export let icon: string | undefined | ComponentType = undefined;
   export let icon_button_color: string = "var(--color-accent)";
   export let pulse_color: string = "var(--color-accent)";
+  export let wave_color: string = "var(--color-accent)";
 
   let audioContext: AudioContext;
   let analyser: AnalyserNode;
@@ -52,12 +53,23 @@
       // Update bars
       const bars = document.querySelectorAll('.gradio-webrtc-waveContainer .gradio-webrtc-box');
       for (let i = 0; i < bars.length; i++) {
-        const barHeight = (dataArray[i] / 255) * 2;
+        const barHeight = (dataArray[transformIndex(i)] / 255);
         bars[i].style.transform = `scaleY(${Math.max(0.1, barHeight)})`;
+        bars[i].style.background = wave_color;
+        bars[i].style.opacity = 0.5;
       }
 
     animationId = requestAnimationFrame(updateVisualization);
   }
+
+  // 声波高度从两侧向中间收拢
+  function transformIndex(index: number): number {
+    const mapping = [0, 2, 4, 6, 8, 10, 12, 14, 15, 13, 11, 9, 7, 5, 3, 1];
+    if (index < 0 || index >= mapping.length) {
+        throw new Error("Index must be between 0 and 15");
+    }
+    return mapping[index];
+}
 </script>
 
 <div class="gradio-webrtc-waveContainer">
