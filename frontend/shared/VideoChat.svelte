@@ -591,15 +591,16 @@
 			}
 		}
 		.player-controls {
-			height: 15%;
+			height: 15%;;
 			position: relative;
 			display: flex;
 			justify-content: center;
 			align-items: center;
+			min-height: 84px;
 			
 			.chat-btn {
 				height: 64px;
-				width: 100%;
+				width: 296px;
 				display: flex;
 				justify-content: center;
 				align-items: center;
