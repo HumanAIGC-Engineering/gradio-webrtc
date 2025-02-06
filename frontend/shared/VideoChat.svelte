@@ -207,7 +207,10 @@
 								webcam_received = false;
                 dispatch("error", "Too many concurrent users. Come back later!");
             });
-        } else {
+        } else if (stream_state === 'waiting') {
+					// waiting 中不允许操作
+					return
+				}else {
 					remoteVideoPosition.init = false 
 					computeLocalPosition()
             stop(pc);
@@ -235,12 +238,6 @@
 				document.removeEventListener("click", handle_click, true);
 			}
 		};
-	}
-
-	function handle_click_outside(event: MouseEvent): void {
-		event.preventDefault();
-		event.stopPropagation();
-		options_open = false;
 	}
 
 	let wrapperRef: HTMLDivElement;
@@ -294,6 +291,7 @@
 	}
 
 	function computeLocalPosition() {
+		if (!localVideoRef || !localVideoContainerRef || !localVideoRef.videoHeight) return
 		if (remoteVideoPosition.init) {
 			// 存在远端视频则计算画中画
 			let height = remoteVideoPosition.height / 4
@@ -321,7 +319,7 @@
 		}
 	}
 	function computeRemotePosition() {
-		if (!remoteVideoRef.srcObject) return
+		if (!remoteVideoRef.srcObject || !remoteVideoRef.videoHeight) return
 		console.log(remoteVideoRef.videoHeight, remoteVideoRef.videoWidth)
 		let height = wrapperRect.height - 24
 		let width = height / remoteVideoRef.videoHeight* remoteVideoRef.videoWidth
@@ -347,6 +345,9 @@
 	}
 
 	window.addEventListener('resize', () => {
+		wrapperRef.getBoundingClientRect()
+		wrapperRect.width = wrapperRef.clientWidth
+		wrapperRect.height = wrapperRef.clientHeight
 		computeLocalPosition()
 		computeRemotePosition()
 	})
@@ -378,7 +379,7 @@
 					style:width={videoShowType=== 'picture-in-picture' ?remoteVideoPosition.width+'px':''}
 					style:height={videoShowType === 'picture-in-picture' ?remoteVideoPosition.height + 'px': ''}		
 			>
-				<video class="remote-video" on:playing={computeRemotePosition} bind:this={remoteVideoRef}  autoplay playsinline />
+				<video class="remote-video" on:playing={computeRemotePosition} bind:this={remoteVideoRef}  autoplay playsinline muted={volumeMuted}/>
 			</div>
 			<div class="actions" 
 				style:left={videoShowType === 'picture-in-picture' ? actionsPosition.left+'px': ''}
@@ -609,6 +610,7 @@
 				background: linear-gradient(180deg, #7873F6 0%, #524DE1 100%);
 				transition: all 0.3s;
 				z-index: 2;
+				cursor: pointer;
 			}
 			.start-chat {
 				font-size: 16px;

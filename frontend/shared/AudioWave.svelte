@@ -20,7 +20,7 @@
 
   $: containerWidth = icon 
     ? "128px"
-    : `calc((var(--boxSize) + var(--gutter)) * ${numBars})`;
+    : `calc((var(--boxSize) + var(--gutter)) * ${numBars} + 80px)`;
 
   $: if(stream_state === "open") setupAudioContext();
 
@@ -90,7 +90,11 @@
   </div>
 {:else}
   <div class="gradio-webrtc-boxContainer" style:width={containerWidth}>
-    {#each Array(numBars) as _}
+    {#each Array(numBars/2) as _}
+      <div class="gradio-webrtc-box"></div>
+    {/each}
+    <div class="split-container"></div>
+    {#each Array(numBars/2) as _}
       <div class="gradio-webrtc-box"></div>
     {/each}
   </div>
@@ -111,10 +115,13 @@
   display: flex;
   justify-content: space-between;
   height: 64px;
-  --boxSize: 8px;
+  --boxSize: 4px;
   --gutter: 4px;
-}
 
+}
+.split-container {
+    width: 80px;
+  }
 .gradio-webrtc-box {
   height: 100%;
   width: var(--boxSize);
