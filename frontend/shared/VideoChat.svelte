@@ -487,7 +487,7 @@
 					height: 10px;
 					border-radius: 32px;
 					overflow: hidden;
-					transition: all 0.3s ;
+					transition: all 0.3s linear;
 				}
 				.local-video-container {
 					z-index: 1;
@@ -511,6 +511,7 @@
 					background: rgba(255, 255, 255, 0.7);
 					backdrop-filter: blur(20px);
 					border-radius: 32px;
+					transition: all 0.3s linear;
 				}
 				.local-video, .remote-video {
 					width: 100%;
