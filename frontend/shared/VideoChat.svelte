@@ -307,7 +307,7 @@
 			actionsPosition.left = remoteVideoPosition.left + remoteVideoPosition.width + 10
 			actionsPosition.left = actionsPosition.left > wrapperRect.width ? actionsPosition.left - 60 : actionsPosition.left
 			actionsPosition.bottom = wrapperRect.height - remoteVideoPosition.top  - remoteVideoPosition.height + 5
-			actionsPosition.isOverflow = actionsPosition.left + 80 > wrapperRect.width
+			actionsPosition.isOverflow = actionsPosition.left + 300 > wrapperRect.width
 		} else {
 			// 否则则占用全屏
 			let height = wrapperRect.height - 24
@@ -321,7 +321,7 @@
 			actionsPosition.left = localVideoPosition.left + localVideoPosition.width + 10
 			actionsPosition.left = actionsPosition.left > wrapperRect.width ? actionsPosition.left-60 : actionsPosition.left
 			actionsPosition.bottom = wrapperRect.height - localVideoPosition.top  - localVideoPosition.height + 5
-			actionsPosition.isOverflow = actionsPosition.left + 100 > wrapperRect.width
+			actionsPosition.isOverflow = actionsPosition.left + 300 > wrapperRect.width
 
 		}
 	}
@@ -564,6 +564,7 @@
 								top: 0;
 								left: calc(100%);
 								margin-left: 3px;
+
 								&.left {
 									left: 0;
 									margin-left: -3px;
@@ -575,6 +576,10 @@
 								background: rgba(90, 90, 90, 0.5);
 								backdrop-filter: blur(8px);
 								.selector {
+									max-width: 250px;
+									overflow: hidden;
+									text-overflow: ellipsis;
+									white-space: nowrap;
 									position: relative;
 									cursor: pointer;
 									height: 42px;
