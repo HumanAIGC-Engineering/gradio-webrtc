@@ -378,7 +378,7 @@
 			style:width={videoShowType=== 'picture-in-picture'?localVideoPosition.width+'px': ''}
 			style:height={videoShowType === 'picture-in-picture' ? localVideoPosition.height + 'px': ''}		
 			>
-				<video class="local-video" on:playing={computeLocalPosition} bind:this={localVideoRef} autoplay muted playsinline />
+				<video class="local-video" on:playing={computeLocalPosition} bind:this={localVideoRef} autoplay muted playsinline style:visibility={videoShowType === 'picture-in-picture' && cameraOff? 'hidden': 'visible'}/>
 			</div>
 			<div class=remote-video-container   bind:this={remoteVideoContainerRef}
 					style:left={remoteVideoPosition.width < 10 ? '50%' :remoteVideoPosition.left + 'px'}
