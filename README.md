@@ -172,3 +172,4 @@ with gr.Blocks() as demo:
 [sudowind](https://github.com/sudowind)
 [emililykimura](https://github.com/emililykimura)
 [Tony](https://github.com/raidios)
+[Cheng Gang](https://github.com/lovepope)
