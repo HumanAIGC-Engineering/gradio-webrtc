@@ -164,3 +164,9 @@ with gr.Blocks() as demo:
     rtc = WebRTC(rtc_configuration=rtc_configuration, ...)
     ...
 ```
+
+#Contributors
+[csxh47](https://github.com/xhup)
+[bingochaos](https://github.com/bingochaos)
+[sudowind](https://github.com/sudowind)
+[emililykimura](https://github.com/emililykimura)
