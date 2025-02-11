@@ -13,8 +13,7 @@ Typically, you want to run an AI model that generates audio when the user has st
 and passing it to the `stream` event of the `WebRTC` component.
 
 === "Code"
-
-````py title="ReplyonPause"
+``` py title="ReplyonPause"
 import gradio as gr
 from gradio_webrtc import WebRTC, ReplyOnPause
 
@@ -196,9 +195,7 @@ Here is a complete example of using `AsyncStreamHandler` for using the Google Ge
             self.input_queue = asyncio.Queue()
             self.output_queue = asyncio.Queue()
             self.quit = asyncio.Event()
-
             self.connected = asyncio.Event()
-
 
         def copy(self) -> "GeminiHandler":
             return GeminiHandler(
@@ -442,7 +439,7 @@ async def video_receive(self, frame: np.ndarray):
 async def video_emit(self) -> VideoEmitType:
     """Return video frames to the client"""
     return await self.video_queue.get()
-````
+```
 
 ## Additional Outputs
 
