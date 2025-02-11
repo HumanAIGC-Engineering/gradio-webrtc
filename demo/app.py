@@ -1,7 +1,5 @@
 import asyncio
 import base64
-import os
-import time
 from io import BytesIO
 
 import gradio as gr
@@ -9,7 +7,6 @@ import numpy as np
 from gradio_webrtc import (
     AsyncAudioVideoStreamHandler,
     WebRTC,
-    async_aggregate_bytes_to_16bit,
     VideoEmitType,
     AudioEmitType,
 )
@@ -30,7 +27,7 @@ def encode_image(data: np.ndarray) -> dict:
     return {"mime_type": "image/jpeg", "data": base64_str}
 
 
-class GeminiHandler(AsyncAudioVideoStreamHandler):
+class VideoChatHandler(AsyncAudioVideoStreamHandler):
     def __init__(
         self, expected_layout="mono", output_sample_rate=24000, output_frame_size=480
     ) -> None:
@@ -46,8 +43,8 @@ class GeminiHandler(AsyncAudioVideoStreamHandler):
         self.session = None
         self.last_frame_time = 0
 
-    def copy(self) -> "GeminiHandler":
-        return GeminiHandler(
+    def copy(self) -> "VideoChatHandler":
+        return VideoChatHandler(
             expected_layout=self.expected_layout,
             output_sample_rate=self.output_sample_rate,
             output_frame_size=self.output_frame_size,
@@ -102,7 +99,7 @@ with gr.Blocks(css=css) as demo:
             elem_id="video-source",
         )
         webrtc.stream(
-            GeminiHandler(),
+            VideoChatHandler(),
             inputs=[webrtc],
             outputs=[webrtc],
             time_limit=150,
