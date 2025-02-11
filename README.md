@@ -165,7 +165,8 @@ with gr.Blocks() as demo:
     ...
 ```
 
-#Contributors
+## Contributors
+
 [csxh47](https://github.com/xhup)
 [bingochaos](https://github.com/bingochaos)
 [sudowind](https://github.com/sudowind)
