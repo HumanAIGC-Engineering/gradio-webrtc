@@ -19,18 +19,30 @@ export async function get_video_stream(
   include_audio: boolean | { deviceId: { exact: string } },
   video_source: HTMLVideoElement,
   device_id?: string,
-  track_constraints?: MediaTrackConstraints
+  track_constraints?:
+    | MediaTrackConstraints
+    | { video: MediaTrackConstraints; audio: MediaTrackConstraints }
 ): Promise<MediaStream> {
-  const fallback_constraints = track_constraints || {
-    width: { ideal: 500 },
-    height: { ideal: 500 },
-  };
-
+  console.log(track_constraints);
+  const video_fallback_constraints = (track_constraints as any)?.video ||
+    track_constraints || {
+      width: { ideal: 500 },
+      height: { ideal: 500 },
+    };
+  const audio_fallback_constraints = (track_constraints as any)?.audio ||
+    track_constraints || {
+      echoCancellation: true,
+      noiseSuppression: true,
+      autoGainControl: true,
+    };
   const constraints = {
     video: device_id
-      ? { deviceId: { exact: device_id }, ...fallback_constraints }
-      : fallback_constraints,
-    audio: include_audio,
+      ? { deviceId: { exact: device_id }, ...video_fallback_constraints }
+      : video_fallback_constraints,
+    audio:
+      typeof include_audio === "object"
+        ? { ...include_audio, ...audio_fallback_constraints }
+        : include_audio,
   };
 
   return navigator.mediaDevices

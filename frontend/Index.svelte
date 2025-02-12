@@ -81,6 +81,7 @@
 		on:error={({ detail }) => gradio.dispatch("error", detail)}
 		i18n={gradio.i18n}
 		stream_handler={(...args) => gradio.client.stream(...args)}
+		{track_constraints}
 		{height}
 		{on_change_cb} {rtc_configuration}
 		on:tick={() => gradio.dispatch("tick")}

@@ -97,6 +97,22 @@ with gr.Blocks(css=css) as demo:
             mode="send-receive",
             video_chat=True,
             elem_id="video-source",
+            track_constraints={
+                "video": {
+                    "facingMode": "user",
+                    "width": {"ideal": 500},
+                    "height": {"ideal": 500},
+                    "frameRate": {"ideal": 30},
+                },
+                "audio": {
+                    "echoCancellation": True,
+                    "noiseSuppression": {"exact": True},
+                    "autoGainControl": {"exact": False},
+                    "sampleRate": {"ideal": 24000},
+                    "sampleSize": {"ideal": 16},
+                    "channelCount": {"exact": 1},
+                },
+            }
         )
         webrtc.stream(
             VideoChatHandler(),
