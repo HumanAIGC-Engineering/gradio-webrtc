@@ -47,7 +47,7 @@ vad = ["librosa", "onnxruntime"]
 stopword = ["silero", "librosa", "onnxruntime"]
 
 [tool.hatch.build]
-artifacts = ["/backend/gradio_webrtc/templates", "*.pyi", "/Users/huangbinchao/miniconda3/envs/gradio_rtc/lib/python3.12/site-packages/gradio_webrtc/templates"]
+artifacts = ["/backend/gradio_webrtc/templates", "*.pyi"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["/backend/gradio_webrtc"]

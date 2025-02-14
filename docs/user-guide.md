@@ -1,6 +1,6 @@
 # User Guide
 
-To get started with WebRTC streams, all that's needed is to import the `WebRTC` component from this package and implement its `stream` event. 
+To get started with WebRTC streams, all that's needed is to import the `WebRTC` component from this package and implement its `stream` event.
 
 This page will show how to do so with simple code examples.
 For complete implementations of common tasks, see the [cookbook](/cookbook).
@@ -13,9 +13,10 @@ Typically, you want to run an AI model that generates audio when the user has st
 and passing it to the `stream` event of the `WebRTC` component.
 
 === "Code"
-    ``` py title="ReplyonPause"
-    import gradio as gr
-    from gradio_webrtc import WebRTC, ReplyOnPause
+
+````py title="ReplyonPause"
+import gradio as gr
+from gradio_webrtc import WebRTC, ReplyOnPause
 
     def response(audio: tuple[int, np.ndarray]): # (1)
         """This function must yield audio frames"""
@@ -51,31 +52,30 @@ and passing it to the `stream` event of the `WebRTC` component.
 
     3. The `mode` and `modality` arguments must be set to `"send-receive"` and `"audio"`.
 
-    4. The `WebRTC` component must be the first input and output component. 
+    4. The `WebRTC` component must be the first input and output component.
 
     5. Set a `time_limit` to control how long a conversation will last. If the `concurrency_count` is 1 (default), only one conversation will be handled at a time.
-=== "Notes"
-    1. The python generator will receive the **entire** audio up until the user stopped. It will be a tuple of the form (sampling_rate, numpy array of audio). The array will have a shape of (1, num_samples). You can also pass in additional input components.
+
+=== "Notes" 1. The python generator will receive the **entire** audio up until the user stopped. It will be a tuple of the form (sampling_rate, numpy array of audio). The array will have a shape of (1, num_samples). You can also pass in additional input components.
 
     2. The generator must yield audio chunks as a tuple of (sampling_rate, numpy audio arrays). Each numpy audio array must have a shape of (1, num_samples).
 
     3. The `mode` and `modality` arguments must be set to `"send-receive"` and `"audio"`.
 
-    4. The `WebRTC` component must be the first input and output component. 
+    4. The `WebRTC` component must be the first input and output component.
 
     5. Set a `time_limit` to control how long a conversation will last. If the `concurrency_count` is 1 (default), only one conversation will be handled at a time.
 
-
 ### Reply On Stopwords
 
-You can configure your AI model to run whenever a set of "stop words" are detected, like "Hey Siri" or "computer", with the `ReplyOnStopWords` class. 
+You can configure your AI model to run whenever a set of "stop words" are detected, like "Hey Siri" or "computer", with the `ReplyOnStopWords` class.
 
 The API is similar to `ReplyOnPause` with the addition of a `stop_words` parameter.
 
 === "Code"
-    ``` py title="ReplyonPause"
-    import gradio as gr
-    from gradio_webrtc import WebRTC, ReplyOnPause
+``` py title="ReplyonPause"
+import gradio as gr
+from gradio_webrtc import WebRTC, ReplyOnPause
 
     def response(audio: tuple[int, np.ndarray]):
         """This function must yield audio frames"""
@@ -108,10 +108,9 @@ The API is similar to `ReplyOnPause` with the addition of a `stop_words` paramet
     demo.launch()
     ```
 
-    1. The `stop_words` can be single words or pairs of words. Be sure to include common misspellings of your word for more robust detection, e.g. "llama", "lamma". In my experience, it's best to use two very distinct words like "ok computer" or "hello iris". 
-    
-=== "Notes"
-    1. The `stop_words` can be single words or pairs of words. Be sure to include common misspellings of your word for more robust detection, e.g. "llama", "lamma". In my experience, it's best to use two very distinct words like "ok computer" or "hello iris". 
+    1. The `stop_words` can be single words or pairs of words. Be sure to include common misspellings of your word for more robust detection, e.g. "llama", "lamma". In my experience, it's best to use two very distinct words like "ok computer" or "hello iris".
+
+=== "Notes" 1. The `stop_words` can be single words or pairs of words. Be sure to include common misspellings of your word for more robust detection, e.g. "llama", "lamma". In my experience, it's best to use two very distinct words like "ok computer" or "hello iris".
 
 ### Stream Handler
 
@@ -119,10 +118,10 @@ The API is similar to `ReplyOnPause` with the addition of a `stop_words` paramet
 abstraction that gives you arbitrary control over how the input audio stream and output audio stream are created. The following example echos back the user audio.
 
 === "Code"
-    ``` py title="Stream Handler"
-    import gradio as gr
-    from gradio_webrtc import WebRTC, StreamHandler
-    from queue import Queue
+``` py title="Stream Handler"
+import gradio as gr
+from gradio_webrtc import WebRTC, StreamHandler
+from queue import Queue
 
     class EchoHandler(StreamHandler):
         def __init__(self) -> None:
@@ -134,7 +133,7 @@ abstraction that gives you arbitrary control over how the input audio stream and
 
         def emit(self) -> None: # (2)
             return self.queue.get()
-        
+
         def copy(self) -> StreamHandler:
             return EchoHandler()
 
@@ -157,10 +156,7 @@ abstraction that gives you arbitrary control over how the input audio stream and
     1. The `StreamHandler` class implements three methods: `receive`, `emit` and `copy`. The `receive` method is called when a new frame is received from the client, and the `emit` method returns the next frame to send to the client. The `copy` method is called at the beginning of the stream to ensure each user has a unique stream handler.
     2. The `emit` method SHOULD NOT block. If a frame is not ready to be sent, the method should return `None`.
 
-=== "Notes"
-    1. The `StreamHandler` class implements three methods: `receive`, `emit` and `copy`. The `receive` method is called when a new frame is received from the client, and the `emit` method returns the next frame to send to the client. The `copy` method is called at the beginning of the stream to ensure each user has a unique stream handler.
-    2. The `emit` method SHOULD NOT block. If a frame is not ready to be sent, the method should return `None`.
-
+=== "Notes" 1. The `StreamHandler` class implements three methods: `receive`, `emit` and `copy`. The `receive` method is called when a new frame is received from the client, and the `emit` method returns the next frame to send to the client. The `copy` method is called at the beginning of the stream to ensure each user has a unique stream handler. 2. The `emit` method SHOULD NOT block. If a frame is not ready to be sent, the method should return `None`.
 
 ### Async Stream Handlers
 
@@ -169,7 +165,7 @@ It is also possible to create asynchronous stream handlers. This is very conveni
 Here is a complete example of using `AsyncStreamHandler` for using the Google Gemini real time API:
 
 === "Code"
-    ``` py title="AsyncStreamHandler"
+``` py title="AsyncStreamHandler"
 
     import asyncio
     import base64
@@ -288,7 +284,7 @@ Here is a complete example of using `AsyncStreamHandler` for using the Google Ge
             None,
             [api_key_row, row],
         )
-    
+
     demo.launch()
     ```
 
@@ -297,8 +293,7 @@ Here is a complete example of using `AsyncStreamHandler` for using the Google Ge
 In the gemini demo above, you'll notice that we have the user input their google API key. This is stored in a `gr.Textbox` parameter.
 We can access the value of this component via the `latest_args` prop of the `StreamHandler`. The `latest_args` is a list storing the values of each component in the WebRTC `stream` event `inputs` parameter. The value of the `WebRTC` component is the 0th index and it's always the dummy string `__webrtc_value__`.
 
-In order to fetch the latest value from the user however, we `await self.wait_for_args()`. In a synchronous `StreamHandler`, we would call `self.wait_for_args_sync()`. 
-
+In order to fetch the latest value from the user however, we `await self.wait_for_args()`. In a synchronous `StreamHandler`, we would call `self.wait_for_args_sync()`.
 
 ### Server-To-Client Only
 
@@ -329,20 +324,20 @@ To stream only from the server to the client, implement a python generator and p
             trigger=button.click # (2)
         )
     ```
- 
+
     1. Set `mode="receive"` to only receive audio from the server.
     2. The `stream` event must take a `trigger` that corresponds to the gradio event that starts the stream. In this case, it's the button click.
-=== "Notes"
-    1. Set `mode="receive"` to only receive audio from the server.
-    2. The `stream` event must take a `trigger` that corresponds to the gradio event that starts the stream. In this case, it's the button click.
+
+=== "Notes" 1. Set `mode="receive"` to only receive audio from the server. 2. The `stream` event must take a `trigger` that corresponds to the gradio event that starts the stream. In this case, it's the button click.
 
 ## Video Streaming
 
 ### Input/Output Streaming
+
 Set up a video Input/Output stream to continuosly receive webcam frames from the user and run an arbitrary python function to return a modified frame.
 
 === "Code"
-    
+
     ``` py title="Input/Output Streaming"
     import gradio as gr
     from gradio_webrtc import WebRTC
@@ -376,21 +371,18 @@ Set up a video Input/Output stream to continuosly receive webcam frames from the
     2. The function must return a numpy array. It can take arbitrary values from other components.
     3. Set the `modality="video"` and `mode="send-receive"`
     4. The `inputs` parameter should be a list where the first element is the WebRTC component. The only output allowed is the WebRTC component.
-=== "Notes"
-    1. The webcam frame will be represented as a numpy array of shape (height, width, RGB).
-    2. The function must return a numpy array. It can take arbitrary values from other components.
-    3. Set the `modality="video"` and `mode="send-receive"`
-    4. The `inputs` parameter should be a list where the first element is the WebRTC component. The only output allowed is the WebRTC component.
+
+=== "Notes" 1. The webcam frame will be represented as a numpy array of shape (height, width, RGB). 2. The function must return a numpy array. It can take arbitrary values from other components. 3. Set the `modality="video"` and `mode="send-receive"` 4. The `inputs` parameter should be a list where the first element is the WebRTC component. The only output allowed is the WebRTC component.
 
 ### Server-to-Client Only
 
 Set up a server-to-client stream to stream video from an arbitrary user interaction.
 
 === "Code"
-    ``` py title="Server-To-Client"
-        import gradio as gr
-        from gradio_webrtc import WebRTC
-        import cv2
+``` py title="Server-To-Client"
+import gradio as gr
+from gradio_webrtc import WebRTC
+import cv2
 
         def generation():
             url = "https://download.tsi.telecom-paristech.fr/gpac/dataset/dash/uhd/mux_sources/hevcds_720p30_2M.mp4"
@@ -414,10 +406,8 @@ Set up a server-to-client stream to stream video from an arbitrary user interact
     1. The `stream` event's `fn` parameter is a generator function that yields the next frame from the video as a **numpy array**.
     2. Set `mode="receive"` to only receive audio from the server.
     3. The `trigger` parameter the gradio event that will trigger the stream. In this case, the button click event.
-=== "Notes"
-    1. The `stream` event's `fn` parameter is a generator function that yields the next frame from the video as a **numpy array**.
-    2. Set `mode="receive"` to only receive audio from the server.
-    3. The `trigger` parameter the gradio event that will trigger the stream. In this case, the button click event.
+
+=== "Notes" 1. The `stream` event's `fn` parameter is a generator function that yields the next frame from the video as a **numpy array**. 2. Set `mode="receive"` to only receive audio from the server. 3. The `trigger` parameter the gradio event that will trigger the stream. In this case, the button click event.
 
 ## Audio-Video Streaming
 
@@ -428,7 +418,7 @@ Here is an example of the video handling functions for connecting with the Gemin
 
 Please see the "Gemini Audio Video Chat" example in the [cookbook](/cookbook) for the complete code.
 
-``` python title="Async Gemini Video Handling"
+```python title="Async Gemini Video Handling"
 
 async def video_receive(self, frame: np.ndarray):
     """Send video frames to the server"""
@@ -445,8 +435,7 @@ async def video_receive(self, frame: np.ndarray):
 async def video_emit(self) -> VideoEmitType:
     """Return video frames to the client"""
     return await self.video_queue.get()
-```
-
+````
 
 ## Additional Outputs
 
@@ -495,11 +484,9 @@ This is common for displaying a multimodal text/audio conversation in a Chatbot 
                                     queue=False, show_progress="hidden")
         demo.launch()
     ```
-    
+
     1. Pass your data to `AdditionalOutputs` and yield it.
     2. In this case, no audio is being returned, so we set `mode="send"`. However, if we set `mode="send-receive"`, we could also yield generated audio and `AdditionalOutputs`.
     3. The `on_additional_outputs` event does not take `inputs`. It's common practice to not run this event on the queue since it is just a quick UI update.
-=== "Notes"
-    1. Pass your data to `AdditionalOutputs` and yield it.
-    2. In this case, no audio is being returned, so we set `mode="send"`. However, if we set `mode="send-receive"`, we could also yield generated audio and `AdditionalOutputs`.
-    3. The `on_additional_outputs` event does not take `inputs`. It's common practice to not run this event on the queue since it is just a quick UI update.
+
+=== "Notes" 1. Pass your data to `AdditionalOutputs` and yield it. 2. In this case, no audio is being returned, so we set `mode="send"`. However, if we set `mode="send-receive"`, we could also yield generated audio and `AdditionalOutputs`. 3. The `on_additional_outputs` event does not take `inputs`. It's common practice to not run this event on the queue since it is just a quick UI update.

@@ -613,7 +613,6 @@
 		line-height: var(--size-4);
 		white-space: nowrap;
 		text-overflow: ellipsis;
-
 		max-width: var(--size-52);
 	}
 

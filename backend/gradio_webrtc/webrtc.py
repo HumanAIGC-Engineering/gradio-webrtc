@@ -801,7 +801,6 @@ class WebRTC(Component):
             }
         self.track_constraints = track_constraints
         self.event_handler: Callable | StreamHandler | None = None
-
         super().__init__(
             label=label,
             every=every,
