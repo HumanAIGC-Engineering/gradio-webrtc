@@ -107,7 +107,7 @@ with gr.Blocks(css=css) as demo:
             GeminiHandler(),
             inputs=[webrtc],
             outputs=[webrtc],
-            time_limit=150,
+            time_limit=90,
             concurrency_limit=2,
         )
 

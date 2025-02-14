@@ -704,6 +704,7 @@ class WebRTC(Component):
         mode: Literal["send-receive", "receive", "send"] = "send-receive",
         modality: Literal["video", "audio", "audio-video"] = "video",
         show_local_video: Literal['picture-in-picture', 'left-right', None] = None,
+        video_chat: bool = True,
         rtp_params: dict[str, Any] | None = None,
         icon: str | None = None,
         icon_button_color: str | None = None,
@@ -751,6 +752,7 @@ class WebRTC(Component):
         self.mode = mode
         self.modality = modality
         self.show_local_video = show_local_video
+        self.video_chat = video_chat
         self.icon_button_color = icon_button_color
         self.pulse_color = pulse_color
         self.rtp_params = rtp_params or {}
@@ -760,6 +762,10 @@ class WebRTC(Component):
             "waiting": "",
             **(button_labels or {}),
         }
+        if video_chat is True:
+            # ensure modality and mode when video_chat is True
+            self.modality = "audio-video"
+            self.mode = "send-receive"
         if track_constraints is None and modality == "audio":
             track_constraints = {
                 "echoCancellation": True,

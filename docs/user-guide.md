@@ -13,7 +13,8 @@ Typically, you want to run an AI model that generates audio when the user has st
 and passing it to the `stream` event of the `WebRTC` component.
 
 === "Code"
-``` py title="ReplyonPause"
+
+````py title="ReplyonPause"
 import gradio as gr
 from gradio_webrtc import WebRTC, ReplyOnPause
 
@@ -195,7 +196,6 @@ Here is a complete example of using `AsyncStreamHandler` for using the Google Ge
             self.input_queue = asyncio.Queue()
             self.output_queue = asyncio.Queue()
             self.quit = asyncio.Event()
-            self.connected = asyncio.Event()
 
         def copy(self) -> "GeminiHandler":
             return GeminiHandler(
@@ -215,7 +215,6 @@ Here is a complete example of using `AsyncStreamHandler` for using the Google Ge
             async with client.aio.live.connect(
                 model="gemini-2.0-flash-exp", config=config
             ) as session:
-                self.connected.set()
                 async for audio in session.start_stream(
                     stream=self.stream(), mime_type="audio/pcm"
                 ):
@@ -237,10 +236,7 @@ Here is a complete example of using `AsyncStreamHandler` for using the Google Ge
         async def emit(self):
             if not self.args_set.is_set():
                 await self.wait_for_args()
-
-            if not self.connected.is_set():
-                asyncio.create_task(self.generator())
-                await self.connected.wait()
+            asyncio.create_task(self.generator())
 
             array = await self.output_queue.get()
             return (self.output_sample_rate, array)
@@ -439,7 +435,7 @@ async def video_receive(self, frame: np.ndarray):
 async def video_emit(self) -> VideoEmitType:
     """Return video frames to the client"""
     return await self.video_queue.get()
-```
+````
 
 ## Additional Outputs
 

@@ -48,10 +48,10 @@ else:
     rtc_configuration = None
 
 
-def detection(image, conf_threshold=0.3):
-    image = cv2.resize(image, (model.input_width, model.input_height))
-    new_image = model.detect_objects(image, conf_threshold)
-    return cv2.resize(new_image, (500, 500))
+def detection(frame, conf_threshold=0.3):
+    print("frame.shape", frame.shape)
+    frame = cv2.flip(frame, 0)
+    return AdditionalOutputs(1)
 
 
 css = """.my-group {max-width: 600px !important; max-height: 600 !important;}
@@ -75,16 +75,13 @@ with gr.Blocks(css=css) as demo:
     with gr.Column(elem_classes=["my-column"]):
         with gr.Group(elem_classes=["my-group"]):
             image = WebRTC(
-                label="Stream",
-                rtc_configuration=rtc_configuration,
-                mode="send-receive",
-                modality="video",
-                track_constraints={
-                    "width": {"exact": 800},
-                    "height": {"exact": 600},
-                    "aspectRatio": {"exact": 1.33333},
-                },
-                rtp_params={"degradationPreference": "maintain-resolution"},
+                label="Stream", rtc_configuration=rtc_configuration,
+                mode="send",
+                track_constraints={"width": {"exact": 800},
+                                   "height": {"exact": 600},
+                                   "aspectRatio": {"exact": 1.33333}
+                                   },
+                rtp_params={"degradationPreference": "maintain-resolution"}
             )
             conf_threshold = gr.Slider(
                 label="Confidence Threshold",
@@ -96,7 +93,8 @@ with gr.Blocks(css=css) as demo:
             number = gr.Number()
 
         image.stream(
-            fn=detection, inputs=[image, conf_threshold], outputs=[image], time_limit=90
+            fn=detection, inputs=[image, conf_threshold], outputs=[image], time_limit=10
         )
+        image.on_additional_outputs(lambda n: n, outputs=number)
 
 demo.launch()

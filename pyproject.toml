@@ -16,7 +16,7 @@ requires-python = ">=3.10"
 authors = [{ name = "Freddy Boulton", email = "YOUREMAIL@domain.com" }]
 keywords = ["gradio-custom-component", "gradio-template-Video", "streaming", "webrtc", "realtime"]
 # Add dependencies here
-dependencies = ["gradio>=4.0,<6.0", "aiortc"]
+dependencies = ["gradio>=4.0,<6.0", "aiortc", "numpy<2.2,>=1.0"]
 classifiers = [
   'Development Status :: 3 - Alpha',
   'Operating System :: OS Independent',

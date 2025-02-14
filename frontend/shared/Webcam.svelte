@@ -193,7 +193,6 @@
                         case "connected":
                             stream_state = "open";
                             _time_limit = time_limit;
-							dispatch("tick");
                             break;
                         case "disconnected":
                             stream_state = "closed";
