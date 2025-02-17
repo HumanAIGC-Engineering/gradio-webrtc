@@ -5,14 +5,16 @@
 <a href="https://github.com/freddyaboulton/gradio-webrtc" target="_blank"><img alt="Static Badge" style="display: block; padding-right: 5px; height: 20px;" src="https://img.shields.io/badge/github-white?logo=github&logoColor=black"></a>
 <a href="https://freddyaboulton.github.io/gradio-webrtc/" target="_blank"><img alt="Static Badge" src="https://img.shields.io/badge/Docs-ffcf40"></a>
 </div>
+<div align="center">
+<strong>中文|<a href="./README_en.md">English</a></strong>
+</div>
 
-<h3 style='text-align: center'>
-Stream video and audio in real time with Gradio using WebRTC.
+本仓库是从原有的 gradio_webrtc 仓库 fork 而来，主要增加了`video_chat`作为允许的入参，并默认开启，这个模式和原有的`modality="audio-video"`且`mode="send-receive"`的行为保持一致，但重写了 UI 部分，增加了更多的交互能力(更多的麦克风操作，同时展示本地视频信息），其视觉表现如下图。
+
+如果手动将`video_chat`参数设置为`False`，则其用法与原仓库保持一致 https://freddyaboulton.github.io/gradio-webrtc/
 
 ![picture-in-picture](docs/image.png)
 ![side-by-side](docs/image2.png)
-
-</h3>
 
 ## Installation
 
@@ -30,6 +32,8 @@ pip install dist/gradio_webrtc-0.0.30.dev0-py3-none-any.whl
 https://freddyaboulton.github.io/gradio-webrtc/
 
 ## Examples
+
+使用时需要一个 handler 作为组件的入参，并实现类似以下代码：
 
 ```python
 import asyncio
@@ -84,18 +88,22 @@ class VideoChatHandler(AsyncAudioVideoStreamHandler):
             output_frame_size=self.output_frame_size,
         )
 
+    #处理客户端上传的视频数据
     async def video_receive(self, frame: np.ndarray):
         newFrame = np.array(frame)
         newFrame[0:, :, 0] = 255 - newFrame[0:, :, 0]
         self.video_queue.put_nowait(newFrame)
 
+    #准备服务端下发的视频数据
     async def video_emit(self) -> VideoEmitType:
         return await self.video_queue.get()
 
+    #处理客户端上传的音频数据
     async def receive(self, frame: tuple[int, np.ndarray]) -> None:
         frame_size, array = frame
         self.audio_queue.put_nowait(array)
 
+    #准备服务端下发的音频数据
     async def emit(self) -> AudioEmitType:
         if not self.args_set.is_set():
             await self.wait_for_args()
@@ -140,8 +148,8 @@ if __name__ == "__main__":
 
 ## Deployment
 
-When deploying in a cloud environment (like Hugging Face Spaces, EC2, etc), you need to set up a TURN server to relay the WebRTC traffic.
-The easiest way to do this is to use a service like Twilio.
+在云环境中部署（例如 huggingface，EC2 等）时，您需要设置转向服务器以中继 WEBRTC 流量。
+最简单的方法是使用 Twilio 之类的服务。国内部署需要寻找适合的替代方案。
 
 ```python
 from twilio.rest import Client
