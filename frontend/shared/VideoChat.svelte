@@ -282,6 +282,7 @@
 		wrapperRef.getBoundingClientRect()
 		wrapperRect.width = wrapperRef.clientWidth
 		wrapperRect.height = wrapperRef.clientHeight
+		isLandScape = wrapperRect.width * 1.5 > wrapperRect.height
 		console.log(wrapperRect)
 		
 	})
@@ -350,11 +351,12 @@
 		e.preventDefault()
 		e.stopPropagation()
 	}
-
+	export let isLandScape = true
 	window.addEventListener('resize', () => {
 		wrapperRef.getBoundingClientRect()
 		wrapperRect.width = wrapperRef.clientWidth
 		wrapperRect.height = wrapperRef.clientHeight
+		isLandScape = wrapperRect.width * 1.5 > wrapperRect.height
 		computeLocalPosition()
 		computeRemotePosition()
 	})
@@ -371,7 +373,7 @@
 			<WebcamPermissions on:click={async () => access_webcam()} />
 		</div>
 	{/if}
-		<div class="video-container" bind:this={wrapperRef}  class:picture-in-picture={videoShowType === 'picture-in-picture'} class:side-by-side={videoShowType === 'side-by-side'} style:visibility="{webcam_accessed ? 'visible' : 'hidden'}">
+		<div class="video-container" bind:this={wrapperRef} class:vertical={!isLandScape}  class:picture-in-picture={videoShowType === 'picture-in-picture'} class:side-by-side={videoShowType === 'side-by-side'} style:visibility="{webcam_accessed ? 'visible' : 'hidden'}">
 			<div class=local-video-container bind:this={localVideoContainerRef}
 			style:left={localVideoPosition.width < 10 ? '50%' :localVideoPosition.left + 'px'}
 			style:top={localVideoPosition.height < 10 ? '50%' : localVideoPosition.top + 'px'}
@@ -512,6 +514,16 @@
 					backdrop-filter: blur(20px);
 					border-radius: 32px;
 					transition: all 0.3s linear;
+					overflow: hidden;
+				}
+				&.vertical {
+					flex-direction: column-reverse;
+
+
+					.local-video-container, .remote-video-container {
+						width: 100%;
+						height: 49%;	
+					}
 				}
 				.local-video, .remote-video {
 					width: 100%;
