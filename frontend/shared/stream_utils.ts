@@ -48,6 +48,8 @@ export async function get_video_stream(
   return navigator.mediaDevices
     .getUserMedia(constraints)
     .then((local_stream: MediaStream) => {
+      // local_stream.removeTrack(local_stream.getVideoTracks()[0])
+      // local_stream.addTrack(createSimulatedVideoTrack())
       set_local_stream(local_stream, video_source);
       return local_stream;
     });

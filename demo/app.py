@@ -1,10 +1,17 @@
 import asyncio
 import base64
 from io import BytesIO
+import json
+import math
+import queue
+import time
+import uuid
+import threading
 
+from fastrtc.utils import Message
 import gradio as gr
 import numpy as np
-from gradio_webrtc import (
+from fastrtc import (
     AsyncAudioVideoStreamHandler,
     WebRTC,
     VideoEmitType,
@@ -26,6 +33,7 @@ def encode_image(data: np.ndarray) -> dict:
     base64_str = str(base64.b64encode(bytes_data), "utf-8")
     return {"mime_type": "image/jpeg", "data": base64_str}
 
+frame_queue = queue.Queue(maxsize=100)
 
 class VideoChatHandler(AsyncAudioVideoStreamHandler):
     def __init__(
@@ -38,7 +46,7 @@ class VideoChatHandler(AsyncAudioVideoStreamHandler):
             input_sample_rate=24000,
         )
         self.audio_queue = asyncio.Queue()
-        self.video_queue = asyncio.Queue()
+        self.video_queue = frame_queue
         self.quit = asyncio.Event()
         self.session = None
         self.last_frame_time = 0
@@ -49,6 +57,25 @@ class VideoChatHandler(AsyncAudioVideoStreamHandler):
             output_sample_rate=self.output_sample_rate,
             output_frame_size=self.output_frame_size,
         )
+    
+    chat_id = ''
+    async def on_chat_datachannel(self,message: Message,channel): 
+      # 返回
+      # {"type":"chat",id:"标识属于同一段话", "message":"Hello, world!"}
+      # {"type":"avatar_end"} 表示本次对话结束
+      if message['type'] == 'stop_chat':
+        self.chat_id = ''
+        channel.send(json.dumps({'type':'avatar_end'}))
+      else:
+        id = uuid.uuid4().hex
+        self.chat_id = id
+        data = message["data"]
+        halfLen =  math.floor(data.__len__()/2)
+        channel.send(json.dumps({"type":"chat","id":id,"message":data[:halfLen]}))
+        await asyncio.sleep(5)
+        if self.chat_id == id:
+          channel.send(json.dumps({"type":"chat","id":id,"message":data[halfLen:]}))
+          channel.send(json.dumps({'type':'avatar_end'}))
     
     async def video_receive(self, frame: np.ndarray):
         # if self.session:
@@ -61,10 +88,11 @@ class VideoChatHandler(AsyncAudioVideoStreamHandler):
         # print(frame.shape)
         newFrame = np.array(frame)
         newFrame[0:, :, 0] = 255 - newFrame[0:, :, 0]
-        self.video_queue.put_nowait(newFrame)
+        # self.video_queue.put_nowait(newFrame)
     
     async def video_emit(self) -> VideoEmitType:
-        return await self.video_queue.get()
+        # print('123123',frame_queue.qsize())
+        return frame_queue.get()
 
     async def receive(self, frame: tuple[int, np.ndarray]) -> None:
         frame_size, array = frame
@@ -114,14 +142,35 @@ with gr.Blocks(css=css) as demo:
                 },
             }
         )
+        handler = VideoChatHandler()
         webrtc.stream(
-            VideoChatHandler(),
+            handler,
             inputs=[webrtc],
             outputs=[webrtc],
-            time_limit=150,
+            time_limit=1500,
             concurrency_limit=2,
         )
-
+        # 线程函数：随机生成 numpy 帧
+        def generate_frames(width=480, height=960, channels=3):
+            while True:
+                try:
+                    # 随机生成一个 RGB 图像帧
+                    frame = np.random.randint(188, 256, (height, width, channels), dtype=np.uint8)
+                    
+                    # 将帧放入队列
+                    frame_queue.put(frame)
+                    # print("生成一帧数据，形状:", frame.shape, frame_queue.qsize())
+                    
+                    # 模拟实时性：避免过度消耗 CPU
+                    time.sleep(0.03)  # 每秒约生成 30 帧
+                except Exception as e:
+                    print(f"生成帧时出错: {e}")
+                    break
+        thread = threading.Thread(target=generate_frames, daemon=True)
+        thread.start()
 
 if __name__ == "__main__":
     demo.launch()
+
+
+
