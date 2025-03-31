@@ -19,7 +19,9 @@
     "@gradio/utils": "0.7.0",
     "@gradio/wasm": "0.14.2",
     "hls.js": "^1.5.16",
-    "mrmime": "^2.0.0"
+    "mrmime": "^2.0.0",
+    "cookie": "^0.7.6",
+    "terser": "^5.14.2"
   },
   "devDependencies": {
     "@gradio/preview": "0.12.0",
