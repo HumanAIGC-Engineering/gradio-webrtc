@@ -20,7 +20,7 @@
     "@gradio/wasm": "0.14.2",
     "hls.js": "^1.5.16",
     "mrmime": "^2.0.0",
-    "cookie": "^0.7.6",
+    "cookie": "^1.0.2",
     "terser": "^5.14.2"
   },
   "devDependencies": {
