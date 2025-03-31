@@ -252,7 +252,7 @@ soundfile==0.12.1
     # via librosa
 soxr==0.5.0.post1
     # via librosa
-starlette==0.41.3
+starlette==0.42.0
     # via
     #   fastapi
     #   gradio
