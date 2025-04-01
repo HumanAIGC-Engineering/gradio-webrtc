@@ -15,7 +15,7 @@
 
 本仓库是从原有的 gradio_webrtc 仓库 fork 而来，主要增加了`video_chat`作为允许的入参，并默认开启，这个模式和原有的`modality="audio-video"`且`mode="send-receive"`的行为保持一致，但重写了 UI 部分，增加了更多的交互能力(更多的麦克风操作，同时展示本地视频信息），其视觉表现如下图。
 
-如果手动将`video_chat`参数设置为`False`，则其用法与原仓库保持一致 https://freddyaboulton.github.io/gradio-webrtc/
+如果手动将`video_chat`参数设置为`False`，则其用法与原仓库保持一致 [https://freddyaboulton.github.io/gradio-webrtc/](https://github.com/freddyaboulton/fastrtc)
 
 ![picture-in-picture](docs/image.png)
 ![side-by-side](docs/image2.png)
