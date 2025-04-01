@@ -1,184 +1,244 @@
 <script lang="ts">
-	import { createEventDispatcher, onMount } from "svelte";
-	import type { ComponentType } from "svelte";
+  import { createEventDispatcher, onMount } from "svelte";
+  import type { ComponentType } from "svelte";
 
-	import type { I18nFormatter } from "@gradio/utils";
-	import {
-		Spinner,
-	} from "@gradio/icons";
-	import WebcamPermissions from "./WebcamPermissions.svelte";
-	import AudioWave from "./AudioWave.svelte";
-	import { fade } from "svelte/transition";
-	import {
-		get_devices,
-		get_video_stream,
-		set_available_devices
-	} from "./stream_utils";
-    import { start, stop } from "./webrtc_utils";
+  import type { I18nFormatter } from "@gradio/utils";
+  import { Spinner } from "@gradio/icons";
+  import WebcamPermissions from "./WebcamPermissions.svelte";
+  import AudioWave from "./AudioWave.svelte";
+  import { fade } from "svelte/transition";
+  import {
+    createSimulatedAudioTrack,
+    createSimulatedVideoTrack,
+    get_devices,
+    get_stream,
+    set_available_devices,
+    set_local_stream,
+  } from "./VideoChat/stream_utils";
+  import { start, stop } from "./webrtc_utils";
+  import { derived } from "svelte/store";
 
-	let available_video_devices: MediaDeviceInfo[] = [];
-	let available_audio_devices: MediaDeviceInfo[] = [];
-	let selected_video_device: MediaDeviceInfo | null = null;
-	let selected_audio_device: MediaDeviceInfo | null = null;
-	let stream_state: "open" | "waiting" | "closed" = "closed";
-	export let on_change_cb: (msg: "tick" | "change") => void;
-    const _webrtc_id = Math.random().toString(36).substring(2);
-	export let rtp_params: RTCRtpParameters = {} as RTCRtpParameters;
-	export let button_labels: {start: string, stop: string, waiting: string};
-	export let height: number | undefined;
+  let available_video_devices: MediaDeviceInfo[] = [];
+  let available_audio_devices: MediaDeviceInfo[] = [];
+  let selected_video_device: MediaDeviceInfo | null = null;
+  let selected_audio_device: MediaDeviceInfo | null = null;
+  let stream_state: "open" | "waiting" | "closed" = "closed";
+  export let on_change_cb: (msg: "tick" | "change") => void;
+  const _webrtc_id = Math.random().toString(36).substring(2);
+  export let rtp_params: RTCRtpParameters = {} as RTCRtpParameters;
+  export let button_labels: { start: string; stop: string; waiting: string };
+  export let height: number | undefined;
 
-	export const modify_stream: (state: "open" | "closed" | "waiting") => void = (
-		state: "open" | "closed" | "waiting"
-	) => {
-		if (state === "closed") {
-			stream_state = "closed";
-		} else if (state === "waiting") {
-			stream_state = "waiting";
-		} else {
-			stream_state = "open";
-		}
-	};
-
-	export let track_constraints: MediaTrackConstraints | null = null;
-    export let rtc_configuration: Object;
-	export let stream_every = 1;
-	export let server: {
-		offer: (body: any) => Promise<any>;
-	};
-	export let i18n: I18nFormatter;
-
-	let volumeMuted = false
-	let micMuted = false
-	let cameraOff = false
-	const handle_volume_mute = () => {
-		volumeMuted = !volumeMuted
-	}
-	const handle_mic_mute = () => {
-		micMuted = !micMuted
-		stream.getTracks().forEach(track => {
-			if (track.kind.includes('audio'))
-			track.enabled = !micMuted
-		})
-	}
-	const handle_camera_off = () => {
-		cameraOff = !cameraOff
-		stream.getTracks().forEach(track => {
-			if (track.kind.includes('video'))
-			track.enabled = !cameraOff
-		})
-
-	}
-	
-
-	const dispatch = createEventDispatcher<{
-		tick: undefined;
-		error: string;
-		start_recording: undefined;
-		stop_recording: undefined;
-		close_stream: undefined;
-	}>();
-
-
-
-	const handle_device_change = async (deviceId:string): Promise<void> => {
-		const device_id =deviceId;
-		console.log(deviceId, selected_audio_device, selected_video_device)
-		let videoDeviceId = selected_video_device ? selected_video_device.deviceId : ''
-		let audioDeviceId = selected_audio_device ? selected_audio_device.deviceId : ''
-		if (available_audio_devices.find(audio_device => audio_device.deviceId === device_id)) {
-			audioDeviceId = device_id
-			micListShow = false
-			micMuted = false
-		} else if (available_video_devices.find(video_device => video_device.deviceId === device_id)) {
-			videoDeviceId = device_id
-			cameraListShow = false
-			cameraOff = false
-		}
-		const node = localVideoRef; 
-		await get_video_stream(audioDeviceId ? {
-				deviceId: { exact: audioDeviceId },
-		}: true, node, videoDeviceId, track_constraints).then(
-			async (local_stream) => {
-				stream = local_stream;
-				local_stream = local_stream;
-				selected_video_device =
-					available_video_devices.find(
-						(device) => device.deviceId === videoDeviceId
-					) || null;
-				selected_audio_device = 
-					available_audio_devices.find(
-						(device) => device.deviceId === audioDeviceId
-					) || null
-			}
-		);
-	};
-
-	async function access_webcam(): Promise<void> {
-		try {
-			const node = localVideoRef
-			micMuted = false
-			cameraOff = false
-			volumeMuted = false
-			get_video_stream(true, node, null, track_constraints)
-				.then(async (local_stream) => {
-					webcam_accessed = true;
-					let available_devices = await get_devices();
-					stream = local_stream;
-					local_stream = local_stream;
-					return available_devices
-				})
-				.then((devices) => {
-					available_video_devices = set_available_devices(devices, "videoinput");
-					available_audio_devices = set_available_devices(devices, "audioinput");
-					console.log(available_video_devices);
-					console.log(available_audio_devices);
-					const used_devices = stream
-						.getTracks()
-						.map((track) => track.getSettings()?.deviceId);
-					used_devices.forEach((device_id) => {
-						const used_device = devices.find(
-							(device) => device.deviceId === device_id
-						);
-						if (used_device && used_device?.kind.includes('video')) {
-							selected_video_device = used_device;
-						} else if (used_device && used_device?.kind.includes('audio')) {
-							selected_audio_device = used_device;
-						}
-					});
-					!selected_video_device && (selected_video_device = available_video_devices[0])
-				}).catch(() => {
-					alert(i18n("image.no_webcam_support"))
-				});
-
-			if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-				dispatch("error", i18n("image.no_webcam_support"));
-				alert(i18n("image.no_webcam_support"))
-			}
-		} catch (err) {
-			if (err instanceof DOMException && err.name == "NotAllowedError") {
-				dispatch("error", i18n("image.allow_webcam_access"));
-			} else {
-				throw err;
-			}
-		}
-	}
-
-	let recording = false;
-	let stream: MediaStream;
-	let local_stream: MediaStream;
-
-	let webcam_accessed = false;
-	let webcam_received = false;
-    let pc: RTCPeerConnection;
-	export let webrtc_id;
-
-	export let wave_color: string = "#7873F6";
-	
-	const audio_source_callback = () => {
-        if(local_stream) return local_stream;
-        else return localVideoRef.srcObject as MediaStream
+  export const modify_stream: (state: "open" | "closed" | "waiting") => void = (
+    state: "open" | "closed" | "waiting"
+  ) => {
+    if (state === "closed") {
+      stream_state = "closed";
+    } else if (state === "waiting") {
+      stream_state = "waiting";
+    } else {
+      stream_state = "open";
     }
+  };
 
+  export let track_constraints: MediaTrackConstraints | null = null;
+  export let rtc_configuration: Object;
+  export let stream_every = 1;
+  export let server: {
+    offer: (body: any) => Promise<any>;
+  };
+  export let i18n: I18nFormatter;
+
+  let volumeMuted = false;
+  let micMuted = false;
+  let cameraOff = false;
+  const handle_volume_mute = () => {
+    volumeMuted = !volumeMuted;
+  };
+  const handle_mic_mute = () => {
+    micMuted = !micMuted;
+    stream.getTracks().forEach((track) => {
+      if (track.kind.includes("audio")) track.enabled = !micMuted;
+    });
+  };
+  const handle_camera_off = () => {
+    cameraOff = !cameraOff;
+    stream.getTracks().forEach((track) => {
+      if (track.kind.includes("video")) track.enabled = !cameraOff;
+    });
+  };
+
+  const dispatch = createEventDispatcher<{
+    tick: undefined;
+    error: string;
+    start_recording: undefined;
+    stop_recording: undefined;
+    close_stream: undefined;
+  }>();
+
+  const handle_device_change = async (deviceId: string): Promise<void> => {
+    const device_id = deviceId;
+    console.log(deviceId, selected_audio_device, selected_video_device);
+    let videoDeviceId = selected_video_device
+      ? selected_video_device.deviceId
+      : "";
+    let audioDeviceId = selected_audio_device
+      ? selected_audio_device.deviceId
+      : "";
+    if (
+      available_audio_devices.find(
+        (audio_device) => audio_device.deviceId === device_id
+      )
+    ) {
+      audioDeviceId = device_id;
+      micListShow = false;
+      micMuted = false;
+    } else if (
+      available_video_devices.find(
+        (video_device) => video_device.deviceId === device_id
+      )
+    ) {
+      videoDeviceId = device_id;
+      cameraListShow = false;
+      cameraOff = false;
+    }
+    const node = localVideoRef;
+    await get_stream(
+      audioDeviceId
+        ? {
+            deviceId: { exact: audioDeviceId },
+          }
+        : hasMic,
+      videoDeviceId ? { deviceId: { exact: videoDeviceId } } : hasCamera,
+			node,
+      track_constraints
+    ).then(async (local_stream) => {
+      stream = local_stream;
+      local_stream = local_stream;
+			set_local_stream(local_stream, node);
+      selected_video_device =
+        available_video_devices.find(
+          (device) => device.deviceId === videoDeviceId
+        ) || null;
+      selected_audio_device =
+        available_audio_devices.find(
+          (device) => device.deviceId === audioDeviceId
+        ) || null;
+    });
+  };
+  let hasCamera = true;
+  let hasMic = true;
+  async function access_webcam(): Promise<void> {
+    try {
+      const node = localVideoRef;
+      micMuted = false;
+      cameraOff = false;
+      volumeMuted = false;
+      const devices = await get_devices();
+      available_video_devices = set_available_devices(devices, "videoinput");
+      available_audio_devices = set_available_devices(devices, "audioinput");
+      console.log(available_video_devices);
+      console.log(available_audio_devices);
+
+      await get_stream(
+        devices.some((device) => device.kind === "audioinput"),
+        devices.some((device) => device.kind === "videoinput"),
+        node,
+        track_constraints
+      )
+        .then(async (local_stream) => {
+          stream = local_stream;
+        })
+        .then(() => {
+          const used_devices = stream
+            .getTracks()
+            .map((track) => track.getSettings()?.deviceId);
+          used_devices.forEach((device_id) => {
+            const used_device = devices.find(
+              (device) => device.deviceId === device_id
+            );
+            if (used_device && used_device?.kind.includes("video")) {
+              selected_video_device = used_device;
+            } else if (used_device && used_device?.kind.includes("audio")) {
+              selected_audio_device = used_device;
+            }
+          });
+          !selected_video_device &&
+            (selected_video_device = available_video_devices[0]);
+        })
+        .catch(() => {
+          console.error(i18n("image.no_webcam_support"));
+        })
+        .finally(() => {
+					if (!stream) {
+						stream = new MediaStream();
+					}
+          if (!stream.getTracks().find((item) => item.kind === "audio")) {
+            stream.addTrack(createSimulatedAudioTrack());
+            hasMic = false;
+          }
+          if (!stream.getTracks().find((item) => item.kind === "video")) {
+            stream.addTrack(createSimulatedVideoTrack());
+						hasCamera = false;
+          }
+					webcam_accessed = true
+					local_stream = stream;
+          set_local_stream(local_stream, node);
+					console.log(stream.getTracks(), 'current tracks')
+        });
+
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        dispatch("error", i18n("image.no_webcam_support"));
+        alert(i18n("image.no_webcam_support"));
+      }
+    } catch (err) {
+      if (err instanceof DOMException && err.name == "NotAllowedError") {
+        dispatch("error", i18n("image.allow_webcam_access"));
+      } else {
+        throw err;
+      }
+    }
+  }
+
+  let recording = false;
+  let stream: MediaStream;
+  let local_stream: MediaStream;
+
+  let webcam_accessed = false;
+  let webcam_received = false;
+  let pc: RTCPeerConnection;
+  export let webrtc_id;
+
+  export let wave_color: string = "#7873F6";
+
+  const audio_source_callback = () => {
+    if (local_stream) return local_stream;
+    else return localVideoRef.srcObject as MediaStream;
+  };
+
+  let chat_data_channel: RTCDataChannel | undefined;
+  let chatInputRef: HTMLInputElement;
+  function on_chat_input_keydown(event: KeyboardEvent) {
+    event.key === "Enter" && on_send();
+  }
+  function on_send() {
+    if (chat_data_channel && chatInputRef?.value) {
+      chat_data_channel.send(JSON.stringify({type: 'chat', data: chatInputRef.value}))
+      chatInputRef.value = ''
+    }
+  }
+  let answerId = ''
+  let answerMessage = ''
+  function on_channel_message(event:any){
+    const data = JSON.parse(event.data)
+    if(data.type === 'chat'){
+      if(answerId !== data.id){
+        answerMessage = ''
+        answerId = data.id
+      }
+      answerMessage += data.message
+    }
+  }
 	async function start_webrtc(): Promise<void> {
         if (stream_state === 'closed') {
             pc = new RTCPeerConnection(rtc_configuration);
@@ -200,10 +260,14 @@
             )
             stream_state = "waiting"
 			webrtc_id = Math.random().toString(36).substring(2);
-      start(stream, pc, remoteVideoRef, server.offer, webrtc_id, "video", on_change_cb, rtp_params).then((connection) => {
+      start(stream, pc, remoteVideoRef, server.offer, webrtc_id, "video", on_change_cb, rtp_params).then(([connection,datachannel]) => {
 				pc = connection;
 				webcam_received = true;
 				computeRemotePosition()
+
+        chat_data_channel = datachannel
+
+        chat_data_channel.addEventListener('message',on_channel_message)
 			}).catch(() => {
                 console.info("catching")
                 stream_state = "closed";
@@ -223,77 +287,93 @@
         }
 	}
 
-	export function click_outside(node: Node, cb: any): any {
-		const handle_click = (event: MouseEvent): void => {
-			if (
-				node &&
-				!node.contains(event.target as Node) &&
-				!event.defaultPrevented
-			) {
-				cb(event);
-			}
-		};
+  export function click_outside(node: Node, cb: any): any {
+    const handle_click = (event: MouseEvent): void => {
+      if (
+        node &&
+        !node.contains(event.target as Node) &&
+        !event.defaultPrevented
+      ) {
+        cb(event);
+      }
+    };
 
-		document.addEventListener("click", handle_click, true);
+    document.addEventListener("click", handle_click, true);
 
-		return {
-			destroy() {
-				document.removeEventListener("click", handle_click, true);
-			}
-		};
-	}
+    return {
+      destroy() {
+        document.removeEventListener("click", handle_click, true);
+      },
+    };
+  }
 
-	let wrapperRef: HTMLDivElement;
-	const wrapperRect = {
-		width: 0,
-		height: 0
-	}
-	let videoShowType: "side-by-side" | 'picture-in-picture' = "picture-in-picture"
-	let localVideoRef: HTMLVideoElement
-	let localVideoContainerRef: HTMLDivElement
-	let localVideoPosition = {
-		left: 10,
-		top: 0,
-		width: 1,
-	 	height: 1,
-		init: false
-	}
-	let remoteVideoRef: HTMLVideoElement
-	let remoteVideoContainerRef: HTMLDivElement
-	let remoteVideoPosition = {
-		left: 0,
-		top: 0,
-		width: 1,
-	 	height: 1,
-		init: false
-	}
-	let actionsPosition = {
-		left: 0,
-		bottom: 0,
-		init: false,
-		isOverflow: false
-	}
+  let wrapperRef: HTMLDivElement;
+  const wrapperRect = {
+    width: 0,
+    height: 0,
+  };
+  let videoShowType: "side-by-side" | "picture-in-picture" =
+    "picture-in-picture";
+  let localVideoRef: HTMLVideoElement;
+  let localVideoContainerRef: HTMLDivElement;
+  let localVideoPosition = {
+    left: 10,
+    top: 0,
+    width: 1,
+    height: 1,
+    init: false,
+  };
+  let remoteVideoRef: HTMLVideoElement;
+  let remoteVideoContainerRef: HTMLDivElement;
+  let remoteVideoPosition = {
+    left: 0,
+    top: 0,
+    width: 1,
+    height: 1,
+    init: false,
+  };
+  let chatInputPosition = {
+    left: 0,
+    top: 0,
+    width: 1,
+    height: 1,
+  };
+  let actionsPosition = {
+    left: 0,
+    bottom: 0,
+    init: false,
+    isOverflow: false,
+  };
 
-	// const computeVideoPosition = () => {
-	  
-	// }
-	// deal with dom events
-	onMount(() => {
-		wrapperRef.getBoundingClientRect()
-		wrapperRect.width = wrapperRef.clientWidth
-		wrapperRect.height = wrapperRef.clientHeight
-		isLandScape = wrapperRect.width * 1.5 > wrapperRect.height
-		console.log(wrapperRect)
-		
-	})
+  // remoteVideoPosition
 
-	function changeVideoShowType() {
-		if (videoShowType === 'picture-in-picture') {
-			videoShowType = 'side-by-side'
-		} else if (videoShowType === 'side-by-side') {
-			videoShowType = 'picture-in-picture'
-		}
-	}
+  // const computeVideoPosition = () => {
+
+  // }
+  // deal with dom events
+  onMount(() => {
+    wrapperRef.getBoundingClientRect();
+    wrapperRect.width = wrapperRef.clientWidth;
+    wrapperRect.height = wrapperRef.clientHeight;
+    isLandScape = wrapperRect.width * 1.5 > wrapperRect.height;
+    console.log(wrapperRect);
+  });
+
+  function changeVideoShowType() {
+    if (videoShowType === "picture-in-picture") {
+      videoShowType = "side-by-side";
+    } else if (videoShowType === "side-by-side") {
+      videoShowType = "picture-in-picture";
+    }
+  }
+  function computeChatInputPosition() {
+    Object.assign(
+      chatInputPosition,
+      remoteVideoPosition.init ? remoteVideoPosition : localVideoPosition
+    );
+    chatInputPosition.left += 12;
+    chatInputPosition.width -= 12 * 2;
+  }
 	function computeLocalPosition() {
 		if (!localVideoRef || !localVideoContainerRef || !localVideoRef.videoHeight) return
 		if (remoteVideoPosition.init) {
@@ -301,13 +381,13 @@
 			let height = remoteVideoPosition.height / 4
 			let width = height / localVideoRef.videoHeight* localVideoRef.videoWidth
 			localVideoPosition.left = remoteVideoPosition.left + 14
-			localVideoPosition.top = remoteVideoPosition.top + remoteVideoPosition.height - height - 14
+			localVideoPosition.top = remoteVideoPosition.top + remoteVideoPosition.height - height - 14 - 50 // 50为输入框高度
 			localVideoPosition.width = width
 			localVideoPosition.height = height
 
 			actionsPosition.left = remoteVideoPosition.left + remoteVideoPosition.width + 10
 			actionsPosition.left = actionsPosition.left > wrapperRect.width ? actionsPosition.left - 60 : actionsPosition.left
-			actionsPosition.bottom = wrapperRect.height - remoteVideoPosition.top  - remoteVideoPosition.height + 5
+			actionsPosition.bottom = wrapperRect.height - remoteVideoPosition.top  - remoteVideoPosition.height + 5 + 50+8 // 50为输入框高度
 			actionsPosition.isOverflow = actionsPosition.left + 300 > wrapperRect.width
 		} else {
 			// 否则则占用全屏
@@ -325,9 +405,10 @@
 			actionsPosition.isOverflow = actionsPosition.left + 300 > wrapperRect.width
 
 		}
+    computeChatInputPosition()
 	}
 	function computeRemotePosition() {
-		if (!remoteVideoRef.srcObject || !remoteVideoRef.videoHeight) return
+    if (!remoteVideoRef.srcObject || !remoteVideoRef.videoHeight) return
 		console.log(remoteVideoRef.videoHeight, remoteVideoRef.videoWidth)
 		let height = wrapperRect.height - 24
 		let width = height / remoteVideoRef.videoHeight* remoteVideoRef.videoWidth
@@ -363,17 +444,62 @@
 
 </script>
 
-<div class="wrap" style:height="{height > 100 ? '100%' : '90vh'}">
-	<!-- svelte-ignore a11y-missing-attribute -->
-	{#if !webcam_accessed}
-		<div
-			in:fade={{ delay: 100, duration: 200 }}
-			style="height: 100%"
-		>
-			<WebcamPermissions on:click={async () => access_webcam()} />
-		</div>
-	{/if}
-		<div class="video-container" bind:this={wrapperRef} class:vertical={!isLandScape}  class:picture-in-picture={videoShowType === 'picture-in-picture'} class:side-by-side={videoShowType === 'side-by-side'} style:visibility="{webcam_accessed ? 'visible' : 'hidden'}">
+<div class="wrap" style:height={height > 100 ? "100%" : "90vh"}>
+  <!-- svelte-ignore a11y-missing-attribute -->
+  {#if !webcam_accessed}
+    <div in:fade={{ delay: 100, duration: 200 }} style="height: 100%">
+      <WebcamPermissions on:click={async () => access_webcam()} />
+    </div>
+  {/if}
+  <div
+    class="video-container"
+    bind:this={wrapperRef}
+    class:vertical={!isLandScape}
+    class:picture-in-picture={videoShowType === "picture-in-picture"}
+    class:side-by-side={videoShowType === "side-by-side"}
+    style:visibility={webcam_accessed ? "visible" : "hidden"}
+  >
+    {#if stream_state === "open"}
+      <div
+        class="chat-input-container"
+        style:left={chatInputPosition.width < 10
+          ? "50%"
+          : chatInputPosition.left + "px"}
+        style:width={videoShowType === "picture-in-picture"
+          ? chatInputPosition.width + "px"
+          : ""}
+      >
+        <input
+          class="chat-input"
+          bind:this={chatInputRef}
+          on:keydown={on_chat_input_keydown}
+          type="text"
+        />
+        <button class="send-btn" on:click={on_send}>
+          <svg
+            class="icon"
+            viewBox="0 0 1024 1024"
+            version="1.1"
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="20"
+            ><path
+              d="M899.925333 172.080762a48.761905 48.761905 0 0 1 0 28.525714l-207.969523 679.448381a48.761905 48.761905 0 0 1-81.115429 20.187429l-150.552381-150.552381-96.304762 96.329143a24.380952 24.380952 0 0 1-41.593905-17.237334v-214.966857l275.821715-243.370667-355.57181 161.596953-103.253333-103.228953a48.761905 48.761905 0 0 1 20.23619-81.091047L838.997333 139.702857a48.761905 48.761905 0 0 1 60.903619 32.353524z"
+              fill="#ffffff"
+            ></path></svg
+          >
+        </button>
+      </div>
+      {#if answerMessage}
+      <div class="answer-message-container"
+      style:left={chatInputPosition.left+chatInputPosition.width+'px'}
+      >
+        <div class="answer-message-text">
+          {answerMessage}
+        </div>
+      </div>
+      {/if}
+    {/if}
 			<div class=local-video-container bind:this={localVideoContainerRef}
 			style:left={localVideoPosition.width < 10 ? '50%' :localVideoPosition.left + 'px'}
 			style:top={localVideoPosition.height < 10 ? '50%' : localVideoPosition.top + 'px'}
@@ -470,15 +596,66 @@
 </div>
 
 <style lang="less">
-	.wrap {
-		
-		background-image: url(./background.png);
-		height: calc(max(80vh, 100%));
-		position: relative;
-		.video-container {
-			position: relative;
-			height: 85%;
-			padding-top: 24px;
+  .wrap {
+    background-image: url(./background.png);
+    height: calc(max(80vh, 100%));
+    position: relative;
+    .video-container {
+      position: relative;
+      height: 85%;
+      padding-top: 24px;
+
+      .chat-input-container {
+        position: absolute;
+        bottom: 8px;
+        left: 12px;
+        right: 60px;
+        height: 50px;
+        z-index: 100;
+        background-color: #fff;
+        padding: 4px 8px;
+        display: flex;
+        align-items: center;
+
+        border: 1px solid #e8eaf2;
+        border-radius: 12px;
+        border-radius: 20px;
+        box-shadow:
+          0 12px 24px -16px rgba(54, 54, 73, 0.04),
+          0 12px 40px 0 rgba(51, 51, 71, 0.08),
+          0 0 1px 0 rgba(44, 44, 54, 0.02);
+
+        .chat-input {
+          width: 100%;
+          border: none;
+          outline: none;
+          color: #26244c;
+          font-size: 16px;
+          font-weight: 400;
+        }
+        .send-btn {
+          flex: 0 0 auto;
+          background: #615ced;
+          border-radius: 20px;
+          height: 40px;
+          width: 40px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-left: 16px;
+        }
+      }
+
+      .answer-message-container{
+        position: absolute;
+        z-index: 101;
+        padding: 6px 12px;
+        border-radius: 12px;
+        width: 200px;
+        background: rgba(255, 255, 255, 0.8);
+        bottom: 66px;
+        transform: translateX(-100%);
+      }
 
 			&.picture-in-picture {
 				.local-video-container, .remote-video-container {
@@ -519,173 +696,171 @@
 				&.vertical {
 					flex-direction: column-reverse;
 
+          .local-video-container,
+          .remote-video-container {
+            width: 100%;
+            height: 49%;
+          }
+        }
+        .local-video,
+        .remote-video {
+          width: 100%;
+          height: 100%;
+          object-fit: contain;
+        }
+      }
+      .actions {
+        position: absolute;
+        z-index: 2;
+        left: calc(100% - 60px);
+        .action-group {
+          border-radius: 12px;
+          background: rgba(88, 87, 87, 0.5);
+          padding: 2px;
+          backdrop-filter: blur(8px);
+          .action {
+            cursor: pointer;
+            width: 42px;
+            height: 42px;
+            border-radius: 8px;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
 
-					.local-video-container, .remote-video-container {
-						width: 100%;
-						height: 49%;	
-					}
-				}
-				.local-video, .remote-video {
-					width: 100%;
-					height: 100%;
-					object-fit: contain;
-				}
-			}
-			.actions {
-				position: absolute;
-				z-index: 2;
-				left:calc(100% - 60px);
-				.action-group {
-					border-radius: 12px;
-					background: rgba(88, 87, 87, 0.5);
-					padding: 2px;
-					backdrop-filter: blur(8px);
-					.action {
-						cursor: pointer;
-						width: 42px;
-						height: 42px;
-						border-radius: 8px;
-						font-size: 20px;
-						display: flex;
-						align-items: center;
-						justify-content: center;
-						position: relative;
+            .corner {
+              position: absolute;
+              right: 0px;
+              bottom: 0px;
+              padding: 3px;
+              .corner-inner {
+                width: 6px;
+                height: 6px;
+                border-top: 3px transparent solid;
+                border-left: 3px transparent solid;
+                border-bottom: 3px #fff solid;
+                border-right: 3px #fff solid;
+              }
+            }
+            // &:hover {
+            // 	.selectors {
+            // 		display: block !important;
+            // 	}
+            // }
+            .selectors {
+              position: absolute;
+              top: 0;
+              left: calc(100%);
+              margin-left: 3px;
 
-						.corner {
-							position: absolute;
-							right: 0px;
-							bottom: 0px;
-							padding: 3px;
-							.corner-inner {
-								width: 6px;
-								height: 6px;
-								border-top: 3px transparent solid;
-								border-left: 3px transparent solid;
-								border-bottom: 3px #fff solid;
-								border-right: 3px #fff solid;
-							}
-						
-						}
-						// &:hover {
-						// 	.selectors {
-						// 		display: block !important;
-						// 	}
-						// }
-							.selectors {
-								position:absolute;
-								top: 0;
-								left: calc(100%);
-								margin-left: 3px;
+              &.left {
+                left: 0;
+                margin-left: -3px;
+                transform: translateX(-100%);
+              }
+              border-radius: 12px;
+              width: max-content;
+              overflow: hidden;
+              background: rgba(90, 90, 90, 0.5);
+              backdrop-filter: blur(8px);
+              .selector {
+                max-width: 250px;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+                position: relative;
+                cursor: pointer;
+                height: 42px;
+                line-height: 42px;
+                color: #fff;
+                font-size: 14px;
+                &:hover {
+                  background: #67666a;
+                }
+                padding-left: 15px;
+                padding-right: 50px;
 
-								&.left {
-									left: 0;
-									margin-left: -3px;
-									transform: translateX(-100%);
-								}
-								border-radius: 12px;
-								width: max-content;
-								overflow: hidden;
-								background: rgba(90, 90, 90, 0.5);
-								backdrop-filter: blur(8px);
-								.selector {
-									max-width: 250px;
-									overflow: hidden;
-									text-overflow: ellipsis;
-									white-space: nowrap;
-									position: relative;
-									cursor: pointer;
-									height: 42px;
-									line-height: 42px;
-									color: #fff;
-									font-size: 14px;
-									&:hover {
-										background: #67666A;
-									}
-									padding-left: 15px;
-									padding-right: 50px;
-									
-									.active-icon {
-										position: absolute;
-										right: 10px;
-										width: 40px;
-										height: 40px;
-										display: flex;
-										align-items: center;
-										justify-content: center;
-										top: 0;
-									}
-								}
-							
-						}
-					}
-					.action:hover {
-						background: #67666A;
-					}
-				}
-				.action-group + .action-group {
-					margin-top: 10px;
-				}
-			}
-		}
-		.player-controls {
-			height: 15%;;
-			position: relative;
-			display: flex;
-			justify-content: center;
-			align-items: center;
-			min-height: 84px;
-			
-			.chat-btn {
-				height: 64px;
-				width: 296px;
-				display: flex;
-				justify-content: center;
-				align-items: center;
-				border-radius: 999px;
-				opacity: 1;
-				background: linear-gradient(180deg, #7873F6 0%, #524DE1 100%);
-				transition: all 0.3s;
-				z-index: 2;
-				cursor: pointer;
-			}
-			.start-chat {
-				font-size: 16px;
-				font-weight: 500;
-				text-align: center;
-				color: #FFFFFF;
-			}
-			.waiting-icon-text {
-				width: 80px;
-				align-items: center;
-				font-size: 16px;
-				font-weight: 500;
-				color: #FFFFFF;
-				margin: 0 var(--spacing-sm);
-				display: flex;
-        		justify-content: space-evenly;    
-        		gap: var(--size-1);
-				.icon {
-					width: 25px;
-					height: 25px;
-					fill: #FFFFFF;
-					stroke: #FFFFFF;
-					color: #FFFFFF;
-				}
-			}
+                .active-icon {
+                  position: absolute;
+                  right: 10px;
+                  width: 40px;
+                  height: 40px;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  top: 0;
+                }
+              }
+            }
+          }
+          .action:hover {
+            background: #67666a;
+          }
+        }
+        .action-group + .action-group {
+          margin-top: 10px;
+        }
+      }
+    }
+    .player-controls {
+      height: 15%;
+      position: relative;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 84px;
 
-			.stop-chat {
-				width: 64px;
-				.stop-chat-inner {
-					width: 25px;
-					height: 25px;
-					border-radius: 6.25px;
-					background: #FAFAFA;
-				}
-			}
-		}
-		.input-audio-wave {
-			position: absolute;
-		}
+      .chat-btn {
+        height: 64px;
+        width: 296px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        border-radius: 999px;
+        opacity: 1;
+        background: linear-gradient(180deg, #7873f6 0%, #524de1 100%);
+        transition: all 0.3s;
+        z-index: 2;
+        cursor: pointer;
+      }
+      .start-chat {
+        font-size: 16px;
+        font-weight: 500;
+        text-align: center;
+        color: #ffffff;
+      }
+      .waiting-icon-text {
+        width: 80px;
+        align-items: center;
+        font-size: 16px;
+        font-weight: 500;
+        color: #ffffff;
+        margin: 0 var(--spacing-sm);
+        display: flex;
+        justify-content: space-evenly;
+        gap: var(--size-1);
+        .icon {
+          width: 25px;
+          height: 25px;
+          fill: #ffffff;
+          stroke: #ffffff;
+          color: #ffffff;
+        }
+      }
 
-	}
+      .stop-chat {
+        width: 64px;
+        .stop-chat-inner {
+          width: 25px;
+          height: 25px;
+          border-radius: 6.25px;
+          background: #fafafa;
+        }
+      }
+    }
+    .input-audio-wave {
+      position: absolute;
+    }
+  }
 </style>

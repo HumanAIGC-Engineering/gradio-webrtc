@@ -53,6 +53,8 @@ export async function start(
   modality: "video" | "audio" = "video",
   on_change_cb: (msg: "change" | "tick") => void = () => {},
   rtp_params = {},
+  additional_message_cb: (msg: object) => void = () => {},
+  reject_cb: (msg: object) => void = () => {},
 ) {
   pc = createPeerConnection(pc, node);
   const data_channel = pc.createDataChannel("text");
@@ -70,17 +72,19 @@ export async function start(
     } catch (e) {
       console.debug("Error parsing JSON");
     }
-    console.log("event_json", event_json);
     if (
       event.data === "change" ||
       event.data === "tick" ||
       event.data === "stopword" ||
       event_json?.type === "warning" ||
-      event_json?.type === "error"
+      event_json?.type === "error" ||
+      event_json?.type === "send_input" ||
+      event_json?.type === "fetch_output" ||
+      event_json?.type === "stopword"
     ) {
-      console.debug(`${event.data} event received`);
       on_change_cb(event_json ?? event.data);
     }
+    additional_message_cb(event_json ?? event.data);
   };
 
   if (stream) {
@@ -97,15 +101,20 @@ export async function start(
     pc.addTransceiver(modality, { direction: "recvonly" });
   }
 
-  await negotiate(pc, server_fn, webrtc_id);
-  return pc;
+  await negotiate(pc, server_fn, webrtc_id, reject_cb);
+  return [pc, data_channel] as const;
 }
 
-function make_offer(server_fn: any, body): Promise<object> {
+function make_offer(
+  server_fn: any,
+  body,
+  reject_cb: (msg: object) => void = () => {},
+): Promise<object> {
   return new Promise((resolve, reject) => {
     server_fn(body).then((data) => {
       console.debug("data", data);
       if (data?.status === "failed") {
+        reject_cb(data);
         console.debug("rejecting");
         reject("error");
       }
@@ -118,6 +127,7 @@ async function negotiate(
   pc: RTCPeerConnection,
   server_fn: any,
   webrtc_id: string,
+  reject_cb: (msg: object) => void = () => {},
 ): Promise<void> {
   return pc
     .createOffer()
@@ -138,17 +148,40 @@ async function negotiate(
               resolve();
             }
           };
+          pc.addEventListener("icecandidate", () => {
+            console.debug("ice candidate", pc.iceGatheringState);
+            if (pc.iceGatheringState === "complete") {
+              pc.removeEventListener("icegatheringstatechange", checkState);
+              resolve();
+            }
+          });
           pc.addEventListener("icegatheringstatechange", checkState);
+          pc.addEventListener("icecandidate", () => {
+            console.debug("ice candidate", pc.iceGatheringState);
+            if (pc.iceGatheringState === "complete") {
+              pc.removeEventListener("icegatheringstatechange", checkState);
+              resolve();
+            }
+          });
+          if (navigator.userAgent.includes("Safari")) {
+            setTimeout(() => {
+              resolve();
+            }, 3000);
+          }
         }
       });
     })
     .then(() => {
       var offer = pc.localDescription;
-      return make_offer(server_fn, {
-        sdp: offer.sdp,
-        type: offer.type,
-        webrtc_id: webrtc_id,
-      });
+      return make_offer(
+        server_fn,
+        {
+          sdp: offer.sdp,
+          type: offer.type,
+          webrtc_id: webrtc_id,
+        },
+        reject_cb,
+      );
     })
     .then((response) => {
       return response;

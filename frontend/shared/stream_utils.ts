@@ -8,7 +8,7 @@ export function handle_error(error: string): void {
 
 export function set_local_stream(
   local_stream: MediaStream | null,
-  video_source: HTMLVideoElement
+  video_source: HTMLVideoElement,
 ): void {
   video_source.srcObject = local_stream;
   video_source.muted = true;
@@ -21,7 +21,7 @@ export async function get_video_stream(
   device_id?: string,
   track_constraints?:
     | MediaTrackConstraints
-    | { video: MediaTrackConstraints; audio: MediaTrackConstraints }
+    | { video: MediaTrackConstraints; audio: MediaTrackConstraints },
 ): Promise<MediaStream> {
   console.log(track_constraints);
   const video_fallback_constraints = (track_constraints as any)?.video ||
@@ -48,6 +48,8 @@ export async function get_video_stream(
   return navigator.mediaDevices
     .getUserMedia(constraints)
     .then((local_stream: MediaStream) => {
+      // local_stream.removeTrack(local_stream.getVideoTracks()[0])
+      // local_stream.addTrack(createSimulatedVideoTrack())
       set_local_stream(local_stream, video_source);
       return local_stream;
     });
@@ -55,10 +57,10 @@ export async function get_video_stream(
 
 export function set_available_devices(
   devices: MediaDeviceInfo[],
-  kind: "videoinput" | "audioinput" = "videoinput"
+  kind: "videoinput" | "audioinput" = "videoinput",
 ): MediaDeviceInfo[] {
   const cameras = devices.filter(
-    (device: MediaDeviceInfo) => device.kind === kind
+    (device: MediaDeviceInfo) => device.kind === kind,
   );
 
   return cameras;
