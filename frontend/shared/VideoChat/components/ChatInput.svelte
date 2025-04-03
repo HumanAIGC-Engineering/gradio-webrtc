@@ -64,6 +64,7 @@
         <IconFont icon={Send} color={"#fff"} ></IconFont>
       </button>
     {/if}
+    <div class="chat-tip">Texts are ignored during responding.</div>
   </div>
 </div>
 
@@ -78,6 +79,7 @@
     // padding: 0 12px;
 
     .chat-input-inner {
+      position: relative;
       padding: 0 12px;
       background-color: #fff;
       height: 64px;
@@ -91,7 +93,11 @@
         0 12px 24px -16px rgba(54, 54, 73, 0.04),
         0 12px 40px 0 rgba(51, 51, 71, 0.08),
         0 0 1px 0 rgba(44, 44, 54, 0.02);
-
+      .chat-tip {
+        position: absolute;
+        top: 100%;
+        color: #cecece;
+      }
       .chat-input-wrapper {
         flex: 1;
         position: relative;
