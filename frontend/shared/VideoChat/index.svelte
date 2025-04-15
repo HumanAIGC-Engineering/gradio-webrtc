@@ -150,6 +150,16 @@
       micMuted = false;
       cameraOff = false;
       volumeMuted = false;
+      await navigator.mediaDevices
+        .getUserMedia({
+          audio: true,
+        })
+        .catch(() => {});
+      await navigator.mediaDevices
+        .getUserMedia({
+          video: true,
+        })
+        .catch(() => {});
       const devices = await get_devices();
       available_video_devices = set_available_devices(devices, "videoinput");
       available_audio_devices = set_available_devices(devices, "audioinput");
@@ -157,8 +167,8 @@
       console.log(available_audio_devices);
 
       await get_stream(
-        devices.some((device) => device.kind === "audioinput"),
-        devices.some((device) => device.kind === "videoinput"),
+        devices.some((device) => device.kind === "audioinput" && device.deviceId),
+        devices.some((device) => device.kind === "videoinput" && device.deviceId),
         node,
         track_constraints,
       )
