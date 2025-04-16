@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import inspect
+import json
 import logging
 from collections import defaultdict
 from collections.abc import Callable
@@ -30,6 +31,7 @@ from fastrtc.tracks import (
     ServerToClientAudio,
     ServerToClientVideo,
     StreamHandlerBase,
+    StreamHandlerFactory,
     StreamHandlerImpl,
     VideoCallback,
     VideoEventHandler,
@@ -246,7 +248,7 @@ class WebRTCConnectionMixin:
         self.pcs[body["webrtc_id"]] = pc
 
         if isinstance(self.event_handler, StreamHandlerBase):
-            handler = self.event_handler.copy()
+            handler = self.event_handler.copy(webrtc_id=body['webrtc_id'])
             handler.emit = webrtc_error_handler(handler.emit)  # type: ignore
             handler.receive = webrtc_error_handler(handler.receive)  # type: ignore
             handler.start_up = webrtc_error_handler(handler.start_up)  # type: ignore
@@ -255,6 +257,9 @@ class WebRTCConnectionMixin:
                 handler.video_receive = webrtc_error_handler(handler.video_receive)  # type: ignore
             if hasattr(handler, "video_emit"):
                 handler.video_emit = webrtc_error_handler(handler.video_emit)  # type: ignore
+            if hasattr(handler, "on_pc_connected"):
+                handler.on_pc_connected(body["webrtc_id"])
+
         elif isinstance(self.event_handler, VideoStreamHandler):
             self.event_handler.callable = cast(
                 VideoEventHandler, webrtc_error_handler(self.event_handler.callable)
@@ -264,6 +269,7 @@ class WebRTCConnectionMixin:
             handler = webrtc_error_handler(cast(Callable, self.event_handler))
 
         self.handlers[body["webrtc_id"]] = handler
+
 
         @pc.on("iceconnectionstatechange")
         async def on_iceconnectionstatechange():
@@ -393,6 +399,23 @@ class WebRTCConnectionMixin:
             def _(message):
                 logger.debug(f"Received message: {message}")
                 if channel.readyState == "open":
+                  def parse_json_safely(str: str):
+                    try:
+                        result = json.loads(str)
+                        return result, None
+                    except json.JSONDecodeError as e:
+                        # print(f"JSON解析错误: {e.msg}")
+                        return None, e
+                  msg_dict,error = parse_json_safely(message)
+                  if(error is None and msg_dict['type'] in ['chat','stop_chat', 'init']):
+                    msg_dict = cast(dict, json.loads(message))
+                    handler = self.handlers[body["webrtc_id"]]
+                    if inspect.iscoroutinefunction(handler.on_chat_datachannel):
+                        asyncio.create_task(
+                            handler.on_chat_datachannel(msg_dict,channel))
+                    else: 
+                        handler.on_chat_datachannel(msg_dict,channel)
+                  else:
                     channel.send(
                         create_message("log", data=f"Server received: {message}")
                     )

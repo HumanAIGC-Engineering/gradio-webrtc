@@ -18,11 +18,18 @@
     "@gradio/upload": "0.13.3",
     "@gradio/utils": "0.7.0",
     "@gradio/wasm": "0.14.2",
+    "base64-js": "^1.5.1",
+    "buffer": "^6.0.3",
+    "eventemitter3": "^5.0.1",
+    "gaussian-splat-renderer-for-lam": "^0.0.6",
     "hls.js": "^1.5.16",
-    "mrmime": "^2.0.0"
+    "mrmime": "^2.0.0",
+    "p-queue": "^8.0.1",
+    "python-struct": "^1.1.3"
   },
   "devDependencies": {
     "@gradio/preview": "0.12.0",
+    "less": "^4.2.2",
     "prettier": "^3.3.3",
     "prettier-plugin-svelte": "^3.3.3"
   },

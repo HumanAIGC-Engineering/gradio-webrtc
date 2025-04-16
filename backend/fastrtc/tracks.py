@@ -360,6 +360,10 @@ class StreamHandlerBase(ABC):
             )
         yield from self._resampler.resample(frame)
 
+class StreamHandlerFactory(ABC):
+    @abstractmethod
+    def create(id:str)-> StreamHandlerBase:
+        pass
 
 EmitType: TypeAlias = (
     tuple[int, npt.NDArray[np.int16 | np.float32]]
@@ -381,7 +385,7 @@ class StreamHandler(StreamHandlerBase):
         pass
 
     @abstractmethod
-    def copy(self) -> StreamHandler:
+    def copy(self, **kwargs) -> StreamHandler:
         pass
 
     def start_up(self):
@@ -398,10 +402,13 @@ class AsyncStreamHandler(StreamHandlerBase):
         pass
 
     @abstractmethod
-    def copy(self) -> AsyncStreamHandler:
+    def copy(self, **kwargs) -> AsyncStreamHandler:
         pass
 
     async def start_up(self):
+        pass
+
+    async def on_chat_datachannel(self, message: dict,channel):
         pass
 
 
@@ -418,7 +425,7 @@ class AudioVideoStreamHandler(StreamHandler):
         pass
 
     @abstractmethod
-    def copy(self) -> AudioVideoStreamHandler:
+    def copy(self, **kwargs) -> AudioVideoStreamHandler:
         pass
 
 
@@ -432,7 +439,7 @@ class AsyncAudioVideoStreamHandler(AsyncStreamHandler):
         pass
 
     @abstractmethod
-    def copy(self) -> AsyncAudioVideoStreamHandler:
+    def copy(self, **kwargs) -> AsyncAudioVideoStreamHandler:
         pass
 
 

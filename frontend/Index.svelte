@@ -8,7 +8,12 @@
   import StaticVideo from "./shared/StaticVideo.svelte";
   import StaticAudio from "./shared/StaticAudio.svelte";
   import InteractiveAudio from "./shared/InteractiveAudio.svelte";
+  import VideoChat from './shared/VideoChat/index.svelte'
 
+  export let video_chat = false;
+  export let avatar_type: string = ""
+  export let avatar_ws_route: string = ""
+  export let avatar_assets_path: string = ""
   export let elem_id = "";
   export let elem_classes: string[] = [];
   export let visible = true;
@@ -81,6 +86,44 @@
   let dragging = false;
 </script>
 
+{#if video_chat}
+	<Block
+	{visible}
+	variant={"solid"}
+	border_mode={dragging ? "focus" : "base"}
+	padding={false}
+	{elem_id}
+	{elem_classes}
+	{height}
+	{width}
+	{container}
+	{scale}
+	{min_width}
+	allow_overflow={false}>
+		<VideoChat {server} bind:webrtc_id={value}
+		on:clear={() => gradio.dispatch("clear")}
+		on:play={() => gradio.dispatch("play")}
+		on:pause={() => gradio.dispatch("pause")}
+		on:upload={() => gradio.dispatch("upload")}
+		on:stop={() => gradio.dispatch("stop")}
+		on:end={() => gradio.dispatch("end")}
+		on:start_recording={() => gradio.dispatch("start_recording")}
+		on:stop_recording={() => gradio.dispatch("stop_recording")}
+		on:tick={() => gradio.dispatch("tick")}
+		on:error={({ detail }) => gradio.dispatch("error", detail)}
+		i18n={gradio.i18n}
+		stream_handler={(...args) => gradio.client.stream(...args)}
+    {avatar_type}
+    {avatar_ws_route}
+    {avatar_assets_path}
+		{track_constraints}
+		{height}
+		{on_change_cb} {rtc_configuration}
+		on:tick={() => gradio.dispatch("tick")}
+		on:error={({ detail }) => gradio.dispatch("error", detail)}></VideoChat>
+	</Block>
+
+{:else}
 <Block
   {visible}
   variant={"solid"}
@@ -189,3 +232,4 @@
     />
   {/if}
 </Block>
+{/if}

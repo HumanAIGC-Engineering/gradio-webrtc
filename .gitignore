@@ -1,5 +1,6 @@
 .eggs/
-dist/
+dist/*
+
 *.pyc
 __pycache__/
 *.py[cod]
@@ -18,3 +19,7 @@ demo/scratch
 test/
 .venv*
 .env
+
+!dist/fastrtc-0.0.19.dev0-py3-none-any.whl
+backend/fastrtc/templates/*
+frontend/package-lock.json

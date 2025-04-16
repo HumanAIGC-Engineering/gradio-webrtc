@@ -10,6 +10,7 @@ from typing import (
     Concatenate,
     Iterable,
     Literal,
+    Optional,
     ParamSpec,
     Sequence,
     TypeVar,
@@ -84,12 +85,18 @@ class WebRTC(Component, WebRTCConnectionMixin):
         time_limit: float | None = None,
         mode: Literal["send-receive", "receive", "send"] = "send-receive",
         modality: Literal["video", "audio", "audio-video"] = "video",
+        video_chat: bool = True,
         rtp_params: dict[str, Any] | None = None,
         icon: str | None = None,
         icon_button_color: str | None = None,
         pulse_color: str | None = None,
         icon_radius: int | None = None,
         button_labels: dict | None = None,
+
+        #video_chat = True 后生效
+        avatar_type: Optional['gs'] = None,
+        avatar_ws_route: str | None = None,
+        avatar_assets_path: str | None = None
     ):
         """
         Parameters:
@@ -123,6 +130,13 @@ class WebRTC(Component, WebRTCConnectionMixin):
             button_labels: Text to display on the audio or video start, stop, waiting buttons. Dict with keys "start", "stop", "waiting" mapping to the text to display on the buttons.
             icon_radius: Border radius of the icon button expressed as a percentage of the button size. Default is 50%
         """
+        self.video_chat = video_chat
+        if video_chat is True:
+            mode = 'send-receive'
+            modality = 'audio-video'
+            self.avatar_type = avatar_type
+            self.avatar_ws_route = avatar_ws_route
+            self.avatar_assets_path = avatar_assets_path
         WebRTCConnectionMixin.__init__(self)
         self.time_limit = time_limit
         self.height = height
