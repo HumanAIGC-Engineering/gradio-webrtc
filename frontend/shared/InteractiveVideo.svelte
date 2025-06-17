@@ -5,10 +5,11 @@
   import { BlockLabel } from "@gradio/atoms";
   import Webcam from "./Webcam.svelte";
   import { Video } from "@gradio/icons";
+  import type { WebRTCValue } from "./utils";
 
   import type { I18nFormatter } from "@gradio/utils";
 
-  export let value: string = null;
+  export let value: string | WebRTCValue | null = null;
   export let label: string | undefined = undefined;
   export let show_label = true;
   export let include_audio: boolean;
@@ -20,6 +21,7 @@
   export let button_labels: { start: string; stop: string; waiting: string };
   export let server: {
     offer: (body: any) => Promise<any>;
+    turn: () => Promise<any>;
   };
   export let rtc_configuration: Object;
   export let track_constraints: MediaTrackConstraints = {};
@@ -43,7 +45,7 @@
     upload: FileData;
     start_recording?: never;
     stop_recording?: never;
-    tick: never;
+    tick: undefined;
   }>();
 
   let dragging = false;

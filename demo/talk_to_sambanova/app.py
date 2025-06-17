@@ -13,8 +13,9 @@ from fastrtc import (
     AdditionalOutputs,
     ReplyOnPause,
     Stream,
+    get_cloudflare_turn_credentials,
+    get_cloudflare_turn_credentials_async,
     get_stt_model,
-    get_twilio_turn_credentials,
 )
 from gradio.utils import get_space
 from pydantic import BaseModel
@@ -75,7 +76,8 @@ stream = Stream(
     additional_outputs=[chatbot, state],
     additional_outputs_handler=lambda *a: (a[2], a[3]),
     concurrency_limit=20 if get_space() else None,
-    rtc_configuration=get_twilio_turn_credentials() if get_space() else None,
+    rtc_configuration=get_cloudflare_turn_credentials_async,
+    server_rtc_configuration=get_cloudflare_turn_credentials(ttl=36_000),
 )
 
 app = FastAPI()
@@ -95,7 +97,9 @@ class InputData(BaseModel):
 
 @app.get("/")
 async def _():
-    rtc_config = get_twilio_turn_credentials() if get_space() else None
+    rtc_config = await get_cloudflare_turn_credentials_async(
+        hf_token=os.getenv("HF_TOKEN_ALT")
+    )
     html_content = (curr_dir / "index.html").read_text()
     html_content = html_content.replace("__RTC_CONFIGURATION__", json.dumps(rtc_config))
     return HTMLResponse(content=html_content)

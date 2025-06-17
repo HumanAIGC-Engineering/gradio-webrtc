@@ -40,6 +40,7 @@ and set the `mode="receive"` in the `WebRTC` component.
 === "Code"
     ``` py title="Server-To-Client"
     from fastrtc import Stream
+    import cv2
 
     def generation():
         url = "https://download.tsi.telecom-paristech.fr/gpac/dataset/dash/uhd/mux_sources/hevcds_720p30_2M.mp4"

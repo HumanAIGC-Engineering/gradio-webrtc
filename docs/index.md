@@ -8,7 +8,7 @@
 
 <div style="display: flex; flex-direction: row; justify-content: center">
 <img style="display: block; padding-right: 5px; height: 20px;" alt="Static Badge" src="https://img.shields.io/pypi/v/fastrtc"> 
-<a href="https://github.com/freddyaboulton/fastrtc" target="_blank"><img alt="Static Badge" src="https://img.shields.io/badge/github-white?logo=github&logoColor=black"></a>
+<a href="https://github.com/gradio-app/fastrtc" target="_blank"><img alt="Static Badge" src="https://img.shields.io/badge/github-white?logo=github&logoColor=black"></a>
 </div>
 
 <h3 style='text-align: center'>
@@ -184,7 +184,7 @@ Learn more about the [Stream](userguide/streams) in the user guide.
 ## Examples
 See the [cookbook](/cookbook).
 
-Follow and join or [organization](https://huggingface.co/fastrtc) on Hugging Face!
+Follow and join our [organization](https://huggingface.co/fastrtc) on Hugging Face!
 
 <div style="display: flex; flex-direction: row; justify-content: center; align-items: center; max-width: 600px; margin: 0 auto;">
     <img style="display: block; height: 100px; margin-right: 20px;" src="/hf-logo-with-title.svg">

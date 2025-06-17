@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import Dict, List
 
 from dotenv import load_dotenv
 from fastrtc import (
@@ -22,11 +21,11 @@ stt_model = get_stt_model()
 tts_model = get_tts_model()
 
 # Conversation state to maintain history
-conversation_state: List[Dict[str, str]] = []
+conversation_state: list[dict[str, str]] = []
 
 # System prompt for agent
 system_prompt = """You are a helpful assistant that can helps with finding places to 
-workremotely from. You should specifically check against reviews and ratings of the 
+work remotely from. You should specifically check against reviews and ratings of the 
 place. You should use this criteria to find the best place to work from:
 - Price
 - Reviews
@@ -78,9 +77,7 @@ def process_response(audio):
     response_content = agent.run(input_text)
 
     # Convert response to audio using TTS model
-    for audio_chunk in tts_model.stream_tts_sync(response_content or ""):
-        # Yield the audio chunk
-        yield audio_chunk
+    yield from tts_model.stream_tts_sync(response_content or "")
 
 
 stream = Stream(

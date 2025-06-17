@@ -3,16 +3,14 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable
+from collections.abc import Callable, Iterable, Sequence
 from typing import (
     TYPE_CHECKING,
     Any,
     Concatenate,
-    Iterable,
     Literal,
     Optional,
     ParamSpec,
-    Sequence,
     TypeVar,
     cast,
 )
@@ -29,6 +27,7 @@ from .tracks import (
     VideoEventHandler,
     VideoStreamHandler,
 )
+from .utils import RTCConfigurationCallable, WebRTCData, WebRTCModel
 from .webrtc_connection_mixin import WebRTCConnectionMixin
 
 if TYPE_CHECKING:
@@ -59,7 +58,8 @@ class WebRTC(Component, WebRTCConnectionMixin):
     Demos: video_identity_2
     """
 
-    EVENTS = ["tick", "state_change"]
+    EVENTS = ["tick", "state_change", "submit", "start_recording", "stop_recording"]
+    data_model = WebRTCModel
 
     def __init__(
         self,
@@ -80,9 +80,11 @@ class WebRTC(Component, WebRTCConnectionMixin):
         render: bool = True,
         key: int | str | None = None,
         mirror_webcam: bool = True,
-        rtc_configuration: dict[str, Any] | None = None,
+        rtc_configuration: dict[str, Any] | None | RTCConfigurationCallable = None,
+        server_rtc_configuration: dict[str, Any] | None = None,
         track_constraints: dict[str, Any] | None = None,
         time_limit: float | None = None,
+        allow_extra_tracks: bool = False,
         mode: Literal["send-receive", "receive", "send"] = "send-receive",
         modality: Literal["video", "audio", "audio-video"] = "video",
         video_chat: bool = True,
@@ -96,7 +98,8 @@ class WebRTC(Component, WebRTCConnectionMixin):
         #video_chat = True 后生效
         avatar_type: Optional['gs'] = None,
         avatar_ws_route: str | None = None,
-        avatar_assets_path: str | None = None
+        avatar_assets_path: str | None = None,
+        variant: Literal["textbox", "wave"] = "wave",
     ):
         """
         Parameters:
@@ -119,8 +122,11 @@ class WebRTC(Component, WebRTCConnectionMixin):
             key: if assigned, will be used to assume identity across a re-render. Components that have the same key across a re-render will have their value preserved.
             mirror_webcam: if True webcam will be mirrored. Default is True.
             rtc_configuration: WebRTC configuration options. See https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/RTCPeerConnection . If running the demo on a remote server, you will need to specify a rtc_configuration. See https://freddyaboulton.github.io/gradio-webrtc/deployment/
+            server_rtc_configuration: Optional dictionary for RTCPeerConnection configuration on the server side. Note
+                                      that setting iceServers to be an empty list will mean no ICE servers will be used in the server.
             track_constraints: Media track constraints for WebRTC. For example, to set video height, width use {"width": {"exact": 800}, "height": {"exact": 600}, "aspectRatio": {"exact": 1.33333}}
             time_limit: Maximum duration in seconds for recording.
+            allow_extra_tracks: Allow tracks not supported by the modality. For example, a peer connection with an audio track would be allowed even if modality is 'video', which normally throws a ``ValueError`` exception.
             mode: WebRTC mode - "send-receive", "receive", or "send".
             modality: Type of media - "video" or "audio".
             rtp_params: See https://developer.mozilla.org/en-US/docs/Web/API/RTCRtpSender/setParameters. If you are changing the video resolution, you can set this to {"degradationPreference": "maintain-framerate"} to keep the frame rate consistent.
@@ -138,12 +144,17 @@ class WebRTC(Component, WebRTCConnectionMixin):
             self.avatar_ws_route = avatar_ws_route
             self.avatar_assets_path = avatar_assets_path
         WebRTCConnectionMixin.__init__(self)
+        self.variant = variant
         self.time_limit = time_limit
         self.height = height
         self.width = width
         self.mirror_webcam = mirror_webcam
         self.concurrency_limit = 1
         self.rtc_configuration = rtc_configuration
+        self.server_rtc_configuration = self.convert_to_aiortc_format(
+            server_rtc_configuration
+        )
+        self.allow_extra_tracks = allow_extra_tracks
         self.mode = mode
         self.modality = modality
         self.icon_button_color = icon_button_color
@@ -212,14 +223,21 @@ class WebRTC(Component, WebRTCConnectionMixin):
             icon if not icon else cast(dict, self.serve_static_file(icon)).get("url")
         )
 
-    def preprocess(self, payload: str) -> str:
+    def preprocess(self, payload: WebRTCModel) -> WebRTCData | str:
         """
         Parameters:
             payload: An instance of VideoData containing the video and subtitle files.
         Returns:
             Passes the uploaded video as a `str` filepath or URL whose extension can be modified by `format`.
         """
-        return payload
+        if self.variant == "textbox":
+            return payload.root
+        else:
+            return (
+                payload.root
+                if isinstance(payload.root, str)
+                else payload.root.webrtc_id
+            )
 
     def postprocess(self, value: Any) -> str:
         """
@@ -246,8 +264,9 @@ class WebRTC(Component, WebRTCConnectionMixin):
             inputs = [inputs]
             inputs = list(inputs)
 
-        async def handler(webrtc_id: str, *args):
-            print("webrtc_id", webrtc_id)
+        async def handler(webrtc_id: str | WebRTCData, *args):
+            if isinstance(webrtc_id, WebRTCData):
+                webrtc_id = webrtc_id.webrtc_id
             async for next_outputs in self.output_stream(webrtc_id):
                 yield fn(*args, *next_outputs.args)  # type: ignore
 
@@ -298,7 +317,8 @@ class WebRTC(Component, WebRTCConnectionMixin):
         )
         self.event_handler = fn  # type: ignore
         self.time_limit = time_limit
-
+        if self.variant == "textbox":
+            self.event_handler.needs_args = True  # type: ignore
         if (
             self.mode == "send-receive"
             and self.modality in ["audio", "audio-video"]
@@ -324,7 +344,7 @@ class WebRTC(Component, WebRTCConnectionMixin):
             for input_component in inputs[1:]:  # type: ignore
                 if hasattr(input_component, "change") and send_input_on == "change":
                     input_component.change(  # type: ignore
-                        self.set_input,
+                        self.set_input_gradio,
                         inputs=inputs,
                         outputs=None,
                         concurrency_id=concurrency_id,
@@ -334,13 +354,19 @@ class WebRTC(Component, WebRTCConnectionMixin):
                     )
                 if hasattr(input_component, "submit") and send_input_on == "submit":
                     input_component.submit(  # type: ignore
-                        self.set_input,
+                        self.set_input_gradio,
                         inputs=inputs,
                         outputs=None,
                         concurrency_id=concurrency_id,
                     )
+            self.submit(  # type: ignore
+                self.set_input_on_submit,
+                inputs=inputs,
+                outputs=None,
+                concurrency_id=concurrency_id,
+            )
             return self.tick(  # type: ignore
-                self.set_input,
+                self.set_input_gradio,
                 inputs=inputs,
                 outputs=None,
                 concurrency_id=concurrency_id,
@@ -366,17 +392,30 @@ class WebRTC(Component, WebRTCConnectionMixin):
                 )
             trigger(lambda: "start_webrtc_stream", inputs=None, outputs=self)
             self.tick(  # type: ignore
-                self.set_input,
+                self.set_input_gradio,
                 inputs=[self] + list(inputs),
                 outputs=None,
                 concurrency_id=concurrency_id,
             )
 
     @server
+    async def turn(self, _):
+        try:
+            return await self.resolve_rtc_configuration()
+        except Exception as e:
+            return {"error": str(e)}
+
+    @server
     async def offer(self, body):
         return await self.handle_offer(
             body, self.set_additional_outputs(body["webrtc_id"])
         )
+
+    @server
+    async def quit_output_stream(self, body):
+        if body["webrtc_id"] in self.additional_outputs:
+            self.additional_outputs[body["webrtc_id"]].quit.set()
+        return {"success": True}
 
     def example_payload(self) -> Any:
         return {

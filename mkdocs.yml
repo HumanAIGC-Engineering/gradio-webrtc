@@ -1,7 +1,7 @@
 site_name: FastRTC
 site_url: https://fastrtc.org
 repo_name: fastrtc
-repo_url: https://github.com/freddyaboulton/fastrtc
+repo_url: https://github.com/gradio-app/fastrtc
 theme:
   name: material
   custom_dir: overrides
@@ -34,6 +34,13 @@ nav:
     - Turn-taking Gallery: turn_taking_gallery.md
   - Utils: utils.md
   - Frequently Asked Questions: faq.md
+  - API Reference:
+    - Stream: reference/stream.md
+    - Pause Detection Handlers: reference/reply_on_pause.md
+    - Stream Handlers: reference/stream_handlers.md
+    - Utils: reference/utils.md
+    - TURN Credentials: reference/credentials.md
+
 extra_javascript:
   - https://cdn.jsdelivr.net/npm/marked/marked.min.js
   - https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js
@@ -54,3 +61,14 @@ markdown_extensions:
       emoji_generator: !!python/name:material.extensions.emoji.to_svg
   - admonition
   - pymdownx.details
+plugins:
+  - llmstxt:
+      files:
+      - output: llms.txt
+        inputs:
+        - index.md
+        - userguide/*.md
+        - deployment.md
+        - advanced-configuration.md
+        - faq.md
+        - reference/*.md

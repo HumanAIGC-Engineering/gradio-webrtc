@@ -8,12 +8,13 @@ build-backend = "hatchling.build"
 
 [project]
 name = "fastrtc"
-version = "0.0.19.dev"
+version = "0.0.28.dev"
 description = "The realtime communication library for Python"
 readme = "README.md"
-license = "apache-2.0"
+license = "MIT"
+license-files = ["LICENSE"]
 requires-python = ">=3.10"
-authors = [{ name = "Freddy Boulton", email = "YOUREMAIL@domain.com" }]
+authors = [{ name = "Freddy Boulton", email = "arugula.ligand.92@icloud.com" }]
 keywords = [
   "streaming",
   "webrtc",
@@ -27,17 +28,17 @@ keywords = [
   "video processing",
   "gradio-custom-component",
 ]
-# Add dependencies here
 dependencies = [
   "gradio>=4.0,<6.0",
   "aiortc",
+  "aioice>=0.10.1",
   "audioop-lts;python_version>='3.13'",
   "librosa",
   "numpy<=1.26.4",       
   "numba>=0.60.0",
   "standard-aifc;python_version>='3.13'",
   "standard-sunau;python_version>='3.13'",
-]
+] # Add dependencies here
 classifiers = [
   'Development Status :: 3 - Alpha',
   'Operating System :: OS Independent',
@@ -64,12 +65,12 @@ classifiers = [
 # encounter your project in the wild.
 
 [project.urls]
-repository = "https://github.com/freddyaboulton/gradio-webrtc"
-issues = "https://github.com/freddyaboulton/gradio-webrtc/issues"
-Documentation = "https://freddyaboulton.github.io/gradio-webrtc/cookbook/"
+repository = "https://github.com/gradio-app/fastrtc"
+issues = "https://github.com/gradio-app/fastrtc/issues"
+Documentation = "https://fastrtc.org/"
 
 [project.optional-dependencies]
-dev = ["build", "twine"]
+dev = ["build", "twine", "httpx", "pytest", "pytest-asyncio"]
 vad = ["onnxruntime>=1.20.1"]
 tts = ["kokoro-onnx"]
 stopword = ["fastrtc-moonshine-onnx", "onnxruntime>=1.20.1"]
@@ -81,6 +82,45 @@ artifacts = ["/backend/fastrtc/templates", "*.pyi"]
 [tool.hatch.build.targets.wheel]
 packages = ["/backend/fastrtc"]
 
+[tool.pytest.ini_options]
+testpaths = ["test/"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+
 [tool.ruff]
+src = ["demo", "backend/fastrtc", "test"]
 target-version = "py310"
 extend-exclude = ["demo/phonic_chat", "demo/nextjs_voice_chat"]
+
+[tool.ruff.format]
+exclude = ["*.pyi"]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "Q", "I", "UP"]
+
+# These can be turned on when the framework is more mature (Too many errors right now)
+exclude = ["D"]
+
+# Avoid enforcing line-length violations (`E501`)
+ignore = ["E501"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["E402"]
+"demo/talk_to_smolagents/app.py" = ["W291"]
+
+[tool.pyright]
+include = ["backend/fastrtc"]
+exclude = ["**/__pycache__", "**/*.pyi"]
+
+reportMissingImports = false
+reportMissingTypeStubs = false
+
+pythonVersion = "3.10"
+pythonPlatform = "Linux"

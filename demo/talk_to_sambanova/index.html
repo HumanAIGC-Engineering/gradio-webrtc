@@ -72,13 +72,17 @@
             background-color: #0066cc;
             color: white;
             border: none;
-            padding: 12px 24px;
+            padding: 12px 18px;
             font-family: inherit;
             font-size: 14px;
             cursor: pointer;
             transition: all 0.3s;
             border-radius: 4px;
             font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
 
         button:hover {
@@ -94,7 +98,6 @@
             align-items: center;
             justify-content: center;
             gap: 12px;
-            min-width: 180px;
         }
 
         .spinner {
@@ -118,7 +121,6 @@
             align-items: center;
             justify-content: center;
             gap: 12px;
-            min-width: 180px;
         }
 
         .pulse-circle {
@@ -200,6 +202,23 @@
             background-color: #ffd700;
             color: black;
         }
+
+        /* Styles for the mute toggle icon */
+        .mute-toggle {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .mute-toggle svg {
+            width: 100%;
+            height: 100%;
+            stroke: white;
+        }
     </style>
 </head>
 
@@ -239,26 +258,80 @@
         let audioContext, analyser, audioSource;
         let messages = [];
         let eventSource;
+        let isMuted = false;
+
+        // SVG Icons
+        const micIconSVG = `
+            <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                <line x1="12" y1="19" x2="12" y2="23"></line>
+                <line x1="8" y1="23" x2="16" y2="23"></line>
+            </svg>`;
+
+        const micMutedIconSVG = `
+            <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                <line x1="12" y1="19" x2="12" y2="23"></line>
+                <line x1="8" y1="23" x2="16" y2="23"></line>
+                <line x1="1" y1="1" x2="23" y2="23"></line>
+            </svg>`;
 
         function updateButtonState() {
-            const button = document.getElementById('start-button');
+            const existingMuteButton = startButton.querySelector('.mute-toggle');
+            if (existingMuteButton) {
+                existingMuteButton.removeEventListener('click', toggleMute);
+            }
+            startButton.innerHTML = '';
+
             if (peerConnection && (peerConnection.connectionState === 'connecting' || peerConnection.connectionState === 'new')) {
-                button.innerHTML = `
+                startButton.innerHTML = `
                     <div class="icon-with-spinner">
                         <div class="spinner"></div>
                         <span>Connecting...</span>
                     </div>
                 `;
+                startButton.disabled = true;
             } else if (peerConnection && peerConnection.connectionState === 'connected') {
-                button.innerHTML = `
-                    <div class="pulse-container">
-                        <div class="pulse-circle"></div>
-                        <span>Stop Conversation</span>
-                    </div>
+                const pulseContainer = document.createElement('div');
+                pulseContainer.className = 'pulse-container';
+                pulseContainer.innerHTML = `
+                    <div class="pulse-circle"></div>
+                    <span>Stop Conversation</span>
                 `;
+
+                const muteToggle = document.createElement('div');
+                muteToggle.className = 'mute-toggle';
+                muteToggle.title = isMuted ? 'Unmute' : 'Mute';
+                muteToggle.innerHTML = isMuted ? micMutedIconSVG : micIconSVG;
+                muteToggle.addEventListener('click', toggleMute);
+
+                startButton.appendChild(pulseContainer);
+                startButton.appendChild(muteToggle);
+                startButton.disabled = false;
+
             } else {
-                button.innerHTML = 'Start Conversation';
+                startButton.textContent = 'Start Conversation';
+                startButton.disabled = false;
             }
+        }
+
+        function toggleMute(event) {
+            event.stopPropagation();
+            if (!peerConnection || peerConnection.connectionState !== 'connected') return;
+
+            isMuted = !isMuted;
+            console.log("Mute toggled:", isMuted);
+
+            peerConnection.getSenders().forEach(sender => {
+                if (sender.track && sender.track.kind === 'audio') {
+                    sender.track.enabled = !isMuted;
+                    console.log(`Audio track ${sender.track.id} enabled: ${!isMuted}`);
+                }
+            });
+
+            updateButtonState();
         }
 
         function setupAudioVisualization(stream) {
@@ -378,6 +451,8 @@
                         clearTimeout(timeoutId);
                         const toast = document.getElementById('error-toast');
                         toast.style.display = 'none';
+                    } else if (['closed', 'failed', 'disconnected'].includes(peerConnection.connectionState)) {
+                        stop();
                     }
                     updateButtonState();
                 });
@@ -448,9 +523,10 @@
 
             if (animationFrame) {
                 cancelAnimationFrame(animationFrame);
+                animationFrame = null;
             }
             if (audioContext) {
-                audioContext.close();
+                audioContext.close().catch(e => console.error("Error closing AudioContext:", e));
                 audioContext = null;
                 analyser = null;
                 audioSource = null;
@@ -464,22 +540,33 @@
                     });
                 }
 
-                if (peerConnection.getSenders) {
-                    peerConnection.getSenders().forEach(sender => {
-                        if (sender.track && sender.track.stop) sender.track.stop();
-                    });
-                }
+                peerConnection.onicecandidate = null;
+                peerConnection.ondatachannel = null;
+                peerConnection.onconnectionstatechange = null;
+
                 peerConnection.close();
+                peerConnection = null;
+                console.log("Peer connection closed.");
             }
+            isMuted = false;
             updateButtonState();
             audioLevel = 0;
         }
 
-        startButton.addEventListener('click', () => {
-            if (!peerConnection || peerConnection.connectionState !== 'connected') {
-                setupWebRTC();
-            } else {
+        startButton.addEventListener('click', (event) => {
+            if (event.target.closest('.mute-toggle')) {
+                return;
+            }
+
+            if (peerConnection && peerConnection.connectionState === 'connected') {
+                console.log("Stop button clicked");
                 stop();
+            } else if (!peerConnection || ['new', 'closed', 'failed', 'disconnected'].includes(peerConnection.connectionState)) {
+                console.log("Start button clicked");
+                messages = [];
+                chatMessages.innerHTML = '';
+                setupWebRTC();
+                updateButtonState();
             }
         });
     </script>

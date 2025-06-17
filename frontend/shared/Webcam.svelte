@@ -56,6 +56,7 @@
   export let stream_every = 1;
   export let server: {
     offer: (body: any) => Promise<any>;
+    turn: () => Promise<any>;
   };
 
   export let include_audio: boolean;
@@ -145,6 +146,15 @@
 
   async function start_webrtc(): Promise<void> {
     if (stream_state === "closed") {
+      dispatch("start_recording");
+      await server.turn().then((rtc_configuration_) => {
+        if (rtc_configuration_.error) {
+          dispatch("error", rtc_configuration_.error);
+          return;
+        }
+        rtc_configuration = rtc_configuration_;
+        console.info("rtc_configuration", rtc_configuration_);
+      });
       pc = new RTCPeerConnection(rtc_configuration);
       pc.addEventListener("connectionstatechange", async (event) => {
         switch (pc.connectionState) {
@@ -174,7 +184,7 @@
       const timeoutId = setTimeout(() => {
         // @ts-ignore
         on_change_cb({ type: "connection_timeout" });
-      }, 5000);
+      }, 10000);
 
       start(
         stream,
@@ -198,6 +208,7 @@
           stream_state = "closed";
         });
     } else {
+      dispatch("stop_recording");
       stop(pc);
       stream_state = "closed";
       _time_limit = null;

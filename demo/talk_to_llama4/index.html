@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Talk to Llama 4</title>
+    <style>
+        :root {
+            --color-primary: #3b82f6;
+            --color-secondary: #f97316;
+            --color-background: #0f172a;
+            --color-surface: #1e293b;
+            --color-text: #f1f5f9;
+            --color-message-user: #334155;
+            --color-message-assistant: #1e40af;
+            --gradient-primary: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            --gradient-secondary: linear-gradient(135deg, #f97316, #ec4899);
+            --boxSize: 8px;
+            --gutter: 4px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--color-background);
+            color: var(--color-text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem 1rem;
+            background-image:
+                radial-gradient(circle at 25% 25%, rgba(59, 130, 246, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 75% 75%, rgba(249, 115, 22, 0.1) 0%, transparent 50%);
+        }
+
+        .header-container {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+            margin-bottom: 2rem;
+            width: 100%;
+            max-width: 800px;
+            animation: fadeIn 1s ease-out;
+        }
+
+        .header {
+            text-align: left;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 800;
+        }
+
+        .header h2 {
+            font-size: 1.2rem;
+            font-weight: 400;
+            color: rgba(241, 245, 249, 0.8);
+            margin-bottom: 1rem;
+        }
+
+        .logo {
+            width: 120px;
+            height: 120px;
+            background: var(--color-surface);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+            position: relative;
+            overflow: hidden;
+            animation: float 6s ease-in-out infinite;
+            flex-shrink: 0;
+        }
+
+        .logo::before {
+            content: "";
+            position: absolute;
+            width: 200%;
+            height: 200%;
+            background: var(--gradient-secondary);
+            opacity: 0.2;
+            animation: rotate 10s linear infinite;
+        }
+
+        .logo img {
+            width: 75%;
+            height: 75%;
+            object-fit: contain;
+            z-index: 2;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            background-color: var(--color-surface);
+            border-radius: 1rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            overflow: hidden;
+            animation: slideUp 0.5s ease-out;
+        }
+
+        .chat-container {
+            height: 400px;
+            overflow-y: auto;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            scroll-behavior: smooth;
+        }
+
+        .message {
+            max-width: 80%;
+            padding: 1rem;
+            border-radius: 1rem;
+            line-height: 1.5;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .message.user {
+            background-color: var(--color-message-user);
+            color: var(--color-text);
+            align-self: flex-end;
+            border-bottom-right-radius: 0.25rem;
+        }
+
+        .message.assistant {
+            background-color: var(--color-message-assistant);
+            color: var(--color-text);
+            align-self: flex-start;
+            border-bottom-left-radius: 0.25rem;
+        }
+
+        .wave-visualizer {
+            height: 100px;
+            padding: 1rem;
+            background-color: rgba(30, 41, 59, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .box-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            height: 64px;
+            padding: 0 1rem;
+        }
+
+        .box {
+            height: 100%;
+            width: var(--boxSize);
+            background: var(--gradient-primary);
+            border-radius: 4px;
+            transform: scaleY(0.1);
+            transition: transform 0.05s ease;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 1.5rem;
+            gap: 1rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        #start-button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--gradient-primary);
+            color: white;
+            border: none;
+            border-radius: 9999px;
+            padding: 0.75rem 1.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 14px rgba(59, 130, 246, 0.4);
+        }
+
+        #start-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.6);
+        }
+
+        #start-button:active {
+            transform: translateY(1px);
+        }
+
+        .icon-with-spinner {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            min-width: 180px;
+        }
+
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid white;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            flex-shrink: 0;
+        }
+
+        .pulse-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+
+        .pulse-circle {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--color-secondary);
+            opacity: 0.85;
+            flex-shrink: 0;
+            transform: scale(var(--audio-level, 1));
+            transition: transform 0.1s ease;
+        }
+
+        .mute-toggle {
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            margin-left: 12px;
+            flex-shrink: 0;
+            filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.2));
+        }
+
+        .mute-toggle svg {
+            width: 100%;
+            height: 100%;
+            stroke: white;
+        }
+
+        .typing-indicator {
+            padding: 0.5rem 1rem;
+            display: inline-flex;
+            align-items: center;
+            background-color: var(--color-message-assistant);
+            border-radius: 1rem;
+            align-self: flex-start;
+            margin-bottom: 0.5rem;
+            display: none;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .dots {
+            display: inline-flex;
+            gap: 4px;
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            background-color: white;
+            border-radius: 50%;
+            animation: bounce 1.5s infinite;
+            opacity: 0.7;
+        }
+
+        .dot:nth-child(2) {
+            animation-delay: 0.15s;
+        }
+
+        .dot:nth-child(3) {
+            animation-delay: 0.3s;
+        }
+
+        .toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 1rem 1.5rem;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            z-index: 1000;
+            display: none;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+            animation: slideDown 0.3s ease-out;
+        }
+
+        .toast.error {
+            background-color: #ef4444;
+            color: white;
+        }
+
+        .toast.warning {
+            background-color: #f59e0b;
+            color: black;
+        }
+
+        #audio-output {
+            display: none;
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+
+        @keyframes rotate {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        @keyframes bounce {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-4px);
+            }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translate(-50%, -20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translate(-50%, 0);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="error-toast" class="toast"></div>
+
+    <div class="header-container">
+        <div class="logo">
+            <img src="https://huggingface.co/datasets/freddyaboulton/bucket/resolve/main/Video%26Audio%20huggy.png"
+                alt="LLaMA Logo">
+        </div>
+        <div class="header">
+            <h1>Talk to LLaMA 4</h1>
+            <h2>Experience seamless real-time conversation thanks to Cloudflare and Hugging Face's FastRTC.</h2>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="chat-container" id="chat-messages">
+            <!-- Messages will appear here -->
+        </div>
+
+        <div class="typing-indicator" id="typing-indicator">
+            <div class="dots">
+                <div class="dot"></div>
+                <div class="dot"></div>
+                <div class="dot"></div>
+            </div>
+        </div>
+
+        <div class="wave-visualizer">
+            <div class="box-container" id="box-container">
+                <!-- Boxes will be dynamically added here -->
+            </div>
+        </div>
+
+        <div class="controls">
+            <button id="start-button">Start Conversation</button>
+        </div>
+    </div>
+
+    <audio id="audio-output"></audio>
+
+    <script>
+        let peerConnection;
+        let webrtc_id;
+        const startButton = document.getElementById('start-button');
+        const chatMessages = document.getElementById('chat-messages');
+        const boxContainer = document.getElementById('box-container');
+        const typingIndicator = document.getElementById('typing-indicator');
+        const audioOutput = document.getElementById('audio-output');
+
+        let audioLevel = 0;
+        let animationFrame_input, animationFrame_output;
+        let audioContext_input, audioContext_output;
+        let analyser_input, dataArray_input;
+        let analyser_output, dataArray_output;
+        let audioSource_input, audioSource_output;
+        let messages = [];
+        let eventSource;
+        let isMuted = false;
+
+        // Create wave visualizer boxes
+        const numBars = 32;
+        for (let i = 0; i < numBars; i++) {
+            const box = document.createElement('div');
+            box.className = 'box';
+            boxContainer.appendChild(box);
+        }
+
+        // SVG Icons
+        const micIconSVG = `
+            <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                <line x1="12" y1="19" x2="12" y2="23"></line>
+                <line x1="8" y1="23" x2="16" y2="23"></line>
+            </svg>`;
+
+        const micMutedIconSVG = `
+            <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                <line x1="12" y1="19" x2="12" y2="23"></line>
+                <line x1="8" y1="23" x2="16" y2="23"></line>
+                <line x1="1" y1="1" x2="23" y2="23"></line>
+            </svg>`;
+
+        function updateButtonState() {
+            const existingMuteButton = startButton.querySelector('.mute-toggle');
+            if (existingMuteButton) {
+                existingMuteButton.removeEventListener('click', toggleMute);
+            }
+            startButton.innerHTML = '';
+
+            if (peerConnection && (peerConnection.connectionState === 'connecting' || peerConnection.connectionState === 'new')) {
+                startButton.innerHTML = `
+                    <div class="icon-with-spinner">
+                        <div class="spinner"></div>
+                        <span>Connecting...</span>
+                    </div>
+                `;
+                startButton.disabled = true;
+            } else if (peerConnection && peerConnection.connectionState === 'connected') {
+                const pulseContainer = document.createElement('div');
+                pulseContainer.className = 'pulse-container';
+                pulseContainer.innerHTML = `
+                    <div class="pulse-circle"></div>
+                    <span>Stop Conversation</span>
+                `;
+
+                const muteToggle = document.createElement('div');
+                muteToggle.className = 'mute-toggle';
+                muteToggle.title = isMuted ? 'Unmute' : 'Mute';
+                muteToggle.innerHTML = isMuted ? micMutedIconSVG : micIconSVG;
+                muteToggle.addEventListener('click', toggleMute);
+
+                startButton.appendChild(pulseContainer);
+                startButton.appendChild(muteToggle);
+                startButton.disabled = false;
+
+            } else {
+                startButton.textContent = 'Start Conversation';
+                startButton.disabled = false;
+            }
+        }
+
+        function toggleMute(event) {
+            event.stopPropagation();
+            if (!peerConnection || peerConnection.connectionState !== 'connected') return;
+
+            isMuted = !isMuted;
+            console.log("Mute toggled:", isMuted);
+
+            peerConnection.getSenders().forEach(sender => {
+                if (sender.track && sender.track.kind === 'audio') {
+                    sender.track.enabled = !isMuted;
+                    console.log(`Audio track ${sender.track.id} enabled: ${!isMuted}`);
+                }
+            });
+
+            updateButtonState();
+        }
+
+        function setupAudioVisualization(stream) {
+            // Input audio context for pulse circle
+            audioContext_input = new (window.AudioContext || window.webkitAudioContext)();
+            analyser_input = audioContext_input.createAnalyser();
+            audioSource_input = audioContext_input.createMediaStreamSource(stream);
+            audioSource_input.connect(analyser_input);
+            analyser_input.fftSize = 64;
+            dataArray_input = new Uint8Array(analyser_input.frequencyBinCount);
+
+            function updateAudioLevel() {
+                // Update input audio visualization (pulse circle)
+                analyser_input.getByteFrequencyData(dataArray_input);
+                const average = Array.from(dataArray_input).reduce((a, b) => a + b, 0) / dataArray_input.length;
+                audioLevel = average / 255;
+
+                const pulseCircle = document.querySelector('.pulse-circle');
+                if (pulseCircle) {
+                    pulseCircle.style.setProperty('--audio-level', 1 + audioLevel);
+                }
+
+                animationFrame_input = requestAnimationFrame(updateAudioLevel);
+            }
+
+            updateAudioLevel();
+        }
+
+        function setupOutputVisualization(stream) {
+            // Create separate audio context for output visualization
+            audioContext_output = new (window.AudioContext || window.webkitAudioContext)();
+            analyser_output = audioContext_output.createAnalyser();
+            audioSource_output = audioContext_output.createMediaStreamSource(stream);
+            audioSource_output.connect(analyser_output);
+            analyser_output.fftSize = 2048;
+            dataArray_output = new Uint8Array(analyser_output.frequencyBinCount);
+
+            function updateVisualization() {
+                // Update output audio visualization (wave bars)
+                analyser_output.getByteFrequencyData(dataArray_output);
+
+                const boxes = document.querySelectorAll('.box');
+                for (let i = 0; i < boxes.length; i++) {
+                    const index = Math.floor(i * dataArray_output.length / boxes.length);
+                    const value = dataArray_output[index] / 255;
+                    boxes[i].style.transform = `scaleY(${Math.max(0.1, value * 1.5)})`;
+                }
+
+                animationFrame_output = requestAnimationFrame(updateVisualization);
+            }
+
+            updateVisualization();
+        }
+
+        // Reset wave visualization bars to minimum height
+        function resetVisualization() {
+            const boxes = document.querySelectorAll('.box');
+            boxes.forEach(box => box.style.transform = 'scaleY(0.1)');
+        }
+
+        function showError(message) {
+            const toast = document.getElementById('error-toast');
+            toast.textContent = message;
+            toast.className = 'toast error';
+            toast.style.display = 'block';
+
+            setTimeout(() => {
+                toast.style.display = 'none';
+            }, 5000);
+        }
+
+        function handleMessage(event) {
+            const eventJson = JSON.parse(event.data);
+
+            if (eventJson.type === "error") {
+                showError(eventJson.message);
+            } else if (eventJson.type === "send_input") {
+                fetch('/input_hook', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        webrtc_id: webrtc_id,
+                        chatbot: messages,
+                        state: messages
+                    })
+                });
+            } else if (eventJson.type === "log") {
+                if (eventJson.data === "pause_detected") {
+                    typingIndicator.style.display = 'block';
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                } else if (eventJson.data === "response_starting") {
+                    typingIndicator.style.display = 'none';
+                }
+            }
+        }
+
+        async function setupWebRTC() {
+            const config = __RTC_CONFIGURATION__;
+            peerConnection = new RTCPeerConnection(config);
+
+            const timeoutId = setTimeout(() => {
+                const toast = document.getElementById('error-toast');
+                toast.textContent = "Connection is taking longer than usual. Are you on a VPN?";
+                toast.className = 'toast warning';
+                toast.style.display = 'block';
+
+                setTimeout(() => {
+                    toast.style.display = 'none';
+                }, 5000);
+            }, 5000);
+
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    audio: true
+                });
+
+                setupAudioVisualization(stream);
+
+                stream.getTracks().forEach(track => {
+                    peerConnection.addTrack(track, stream);
+                });
+
+                // Add this listener to handle incoming audio track
+                peerConnection.addEventListener('track', (event) => {
+                    if (event.track.kind === 'audio') {
+                        console.log("Received audio track from server");
+
+                        if (audioOutput) {
+                            audioOutput.srcObject = event.streams[0];
+                            audioOutput.play().catch(e => console.error("Audio play failed:", e));
+                        }
+
+                        // Set up visualization for output audio with separate context
+                        setupOutputVisualization(event.streams[0]);
+                    }
+                });
+
+                const dataChannel = peerConnection.createDataChannel('text');
+                dataChannel.onmessage = handleMessage;
+
+                const offer = await peerConnection.createOffer();
+                await peerConnection.setLocalDescription(offer);
+
+                peerConnection.onicecandidate = ({ candidate }) => {
+                    if (candidate) {
+                        console.debug("Sending ICE candidate", candidate);
+                        fetch('/webrtc/offer', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                candidate: candidate.toJSON(),
+                                webrtc_id: webrtc_id,
+                                type: "ice-candidate",
+                            })
+                        })
+                    }
+                };
+
+                peerConnection.addEventListener('connectionstatechange', () => {
+                    console.log('connectionstatechange', peerConnection.connectionState);
+                    if (peerConnection.connectionState === 'connected') {
+                        clearTimeout(timeoutId);
+                        const toast = document.getElementById('error-toast');
+                        toast.style.display = 'none';
+                    } else if (['closed', 'failed', 'disconnected'].includes(peerConnection.connectionState)) {
+                        stop();
+                    }
+                    updateButtonState();
+                });
+
+                webrtc_id = Math.random().toString(36).substring(7);
+
+                const response = await fetch('/webrtc/offer', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        sdp: peerConnection.localDescription.sdp,
+                        type: peerConnection.localDescription.type,
+                        webrtc_id: webrtc_id
+                    })
+                });
+
+                const serverResponse = await response.json();
+
+                if (serverResponse.status === 'failed') {
+                    showError(serverResponse.meta.error === 'concurrency_limit_reached'
+                        ? `Too many connections. Maximum limit is ${serverResponse.meta.limit}`
+                        : serverResponse.meta.error);
+                    stop();
+                    return;
+                }
+
+                await peerConnection.setRemoteDescription(serverResponse);
+
+                eventSource = new EventSource('/outputs?webrtc_id=' + webrtc_id);
+                eventSource.addEventListener("output", (event) => {
+                    const eventJson = JSON.parse(event.data);
+                    console.log(eventJson);
+                    messages.push(eventJson.message);
+                    addMessage(eventJson.message.role, eventJson.audio ?? eventJson.message.content);
+                })
+            } catch (err) {
+                clearTimeout(timeoutId);
+                console.error('Error setting up WebRTC:', err);
+                showError('Failed to establish connection. Please try again.');
+                stop();
+            }
+        }
+
+        function addMessage(role, content) {
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('message', role);
+            messageDiv.textContent = content;
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function stop() {
+            if (eventSource) {
+                eventSource.close();
+                eventSource = null;
+            }
+
+            if (animationFrame_input) {
+                cancelAnimationFrame(animationFrame_input);
+                animationFrame_input = null;
+            }
+
+            if (animationFrame_output) {
+                cancelAnimationFrame(animationFrame_output);
+                animationFrame_output = null;
+            }
+
+            if (audioContext_input) {
+                audioContext_input.close().catch(e => console.error("Error closing input AudioContext:", e));
+                audioContext_input = null;
+                analyser_input = null;
+                dataArray_input = null;
+                audioSource_input = null;
+            }
+
+            if (audioContext_output) {
+                audioContext_output.close().catch(e => console.error("Error closing output AudioContext:", e));
+                audioContext_output = null;
+                analyser_output = null;
+                dataArray_output = null;
+                audioSource_output = null;
+            }
+
+            if (audioOutput) {
+                audioOutput.pause();
+                audioOutput.srcObject = null;
+            }
+
+            // Reset visualization
+            resetVisualization();
+
+            if (peerConnection) {
+                if (peerConnection.getTransceivers) {
+                    peerConnection.getTransceivers().forEach(transceiver => {
+                        if (transceiver.stop) {
+                            transceiver.stop();
+                        }
+                    });
+                }
+
+                peerConnection.onicecandidate = null;
+                peerConnection.ondatachannel = null;
+                peerConnection.onconnectionstatechange = null;
+
+                peerConnection.close();
+                peerConnection = null;
+            }
+
+            isMuted = false;
+            updateButtonState();
+            audioLevel = 0;
+        }
+
+        startButton.addEventListener('click', (event) => {
+            if (event.target.closest('.mute-toggle')) {
+                return;
+            }
+
+            if (peerConnection && peerConnection.connectionState === 'connected') {
+                console.log("Stop button clicked");
+                stop();
+            } else if (!peerConnection || ['new', 'closed', 'failed', 'disconnected'].includes(peerConnection.connectionState)) {
+                console.log("Start button clicked");
+                messages = [];
+                chatMessages.innerHTML = '';
+                setupWebRTC();
+                updateButtonState();
+            }
+        });
+    </script>
+</body>
+
+</html>

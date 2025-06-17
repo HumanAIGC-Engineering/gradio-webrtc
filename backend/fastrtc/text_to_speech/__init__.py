@@ -1,3 +1,7 @@
-from .tts import KokoroTTSOptions, get_tts_model
+from .tts import (
+    CartesiaTTSOptions,
+    KokoroTTSOptions,
+    get_tts_model,
+)
 
-__all__ = ["get_tts_model", "KokoroTTSOptions"]
+__all__ = ["get_tts_model", "KokoroTTSOptions", "CartesiaTTSOptions"]

@@ -78,7 +78,7 @@ stream = Stream(
 
 ### Startup Function
 
-You can pass in a `startup_fn` to the `ReplyOnPause` class. This function will be called when the connection is first established. It is helpful for generating intial responses.
+You can pass in a `startup_fn` to the `ReplyOnPause` class. This function will be called when the connection is first established. It is helpful for generating initial responses.
 
 ```python
 from fastrtc import get_tts_model, Stream, ReplyOnPause
@@ -138,7 +138,7 @@ The API is similar to `ReplyOnPause` with the addition of a `stop_words` paramet
     1. The `stop_words` can be single words or pairs of words. Be sure to include common misspellings of your word for more robust detection, e.g. "llama", "lamma". In my experience, it's best to use two very distinct words like "ok computer" or "hello iris". 
 
 !!! tip "Extra Dependencies"
-    The `ReplyOnStopWords` class requires the the `stopword` extra. Run `pip install fastrtc[stopword]` to install it.
+    The `ReplyOnStopWords` class requires the `stopword` extra. Run `pip install fastrtc[stopword]` to install it.
 
 !!! warning "English Only"
     The `ReplyOnStopWords` class is currently only supported for English.
@@ -200,7 +200,7 @@ The API is similar to `ReplyOnPause` with the addition of a `stop_words` paramet
 
 It is also possible to create asynchronous stream handlers. This is very convenient for accessing async APIs from major LLM developers, like Google and OpenAI. The main difference is that `receive`, `emit`, and `start_up` are now defined with `async def`.
 
-Here is aa simple example of using `AsyncStreamHandler`:
+Here is a simple example of using `AsyncStreamHandler`:
 
 === "Code"
     ``` py
@@ -262,7 +262,7 @@ audio = model.tts("Hello, world!")
 ```
 
 !!! tip
-    You can customize the audio by passing in an instace of `KokoroTTSOptions` to the method.
+    You can customize the audio by passing in an instance of `KokoroTTSOptions` to the method.
     See [here](https://huggingface.co/hexgrad/Kokoro-82M/blob/main/VOICES.md) for a list of available voices.
     ```python
     from fastrtc import KokoroTTSOptions, get_tts_model
@@ -385,4 +385,49 @@ stream = Stream(ReplyOnPause(echo), modality="audio", mode="send-receive")
 stream.mount(app)
 
 # run with `uvicorn main:app`
+```
+
+### Outbound calls with Twilio
+
+Here's a simple example to call someone using the twilio-python module:
+
+```py
+app = FastAPI()
+
+@app.post("/call")
+async def start_call(req: Request):
+  body = await req.json()
+  from_no = body.get("from")
+  to_no = body.get("to")
+  account_sid = os.getenv("TWILIO_ACCOUNT_SID")
+  auth_token = os.getenv("TWILIO_AUTH_TOKEN")
+  client = Client(account_sid, auth_token)
+
+  # Use the public URL of your application
+  # here we're using ngrok to expose an app
+  # running locally
+  call = client.calls.create(
+    to=to_no,
+    from_=from_no,
+    url="https://[your_ngrok_subdomain].ngrok.app/incoming-call"
+  )
+
+  return {"sid": f"{call.sid}"}
+
+@app.api_route("/incoming-call", methods=["GET", "POST"])
+async def handle_incoming_call(req: Request):
+  from twilio.twiml.voice_response import VoiceResponse, Connect
+  response = VoiceResponse()
+  response.say("Connecting to AI assistant")
+  connect = Connect()
+  connect.stream(url=f'wss://{req.url.hostname}/media-stream')
+  response.append(connect)
+  return HTMLResponse(content=str(response), media_type="application/xml")
+
+@app.websocket("/media-stream")
+async def handle_media_stream(websocket: WebSocket):
+  # stream is a FastRTC stream defined elsewhere
+  await stream.telephone_handler(websocket)
+
+app = gr.mount_gradio_app(app, stream.ui, path="/")
 ```

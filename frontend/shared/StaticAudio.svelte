@@ -4,12 +4,12 @@
   import { Music } from "@gradio/icons";
   import type { I18nFormatter } from "@gradio/utils";
   import { createEventDispatcher } from "svelte";
-  import { onMount } from "svelte";
+  import type { WebRTCValue } from "./utils";
 
   import { start, stop } from "./webrtc_utils";
   import AudioWave from "./AudioWave.svelte";
 
-  export let value: string | null = null;
+  export let value: string | WebRTCValue | null = null;
   export let label: string | undefined = undefined;
   export let show_label = true;
   export let rtc_configuration: Object | null = null;
@@ -22,6 +22,7 @@
 
   export let server: {
     offer: (body: any) => Promise<any>;
+    turn: () => Promise<any>;
   };
 
   let stream_state: "open" | "closed" | "waiting" = "closed";
@@ -77,7 +78,7 @@
       const timeoutId = setTimeout(() => {
         // @ts-ignore
         on_change_cb({ type: "connection_timeout" });
-      }, 5000);
+      }, 10000);
 
       start(
         stream,
@@ -101,7 +102,7 @@
     return value;
   }
 
-  $: start_stream(value).then((val) => {
+  $: start_stream(value as string).then((val) => {
     value = val;
   });
 </script>

@@ -7,13 +7,17 @@ import json
 import logging
 import tempfile
 import traceback
+import warnings
+from collections.abc import Callable, Coroutine
 from contextvars import ContextVar
 from dataclasses import dataclass
-from typing import Any, Callable, Literal, Protocol, TypedDict, cast
+from typing import Any, Literal, Protocol, TypedDict, cast
 
 import av
 import librosa
 import numpy as np
+from fastapi import WebSocket
+from gradio.data_classes import GradioModel, GradioRootModel
 from numpy.typing import NDArray
 from pydub import AudioSegment
 
@@ -26,6 +30,16 @@ AUDIO_PTIME = 0.020
 class AudioChunk(TypedDict):
     start: int
     end: int
+
+
+class WebRTCData(GradioModel):
+    webrtc_id: str
+    textbox: str = ""
+    audio: Any | None = None
+
+
+class WebRTCModel(GradioRootModel):
+    root: WebRTCData | str
 
 
 class AdditionalOutputs:
@@ -65,6 +79,7 @@ current_channel: ContextVar[DataChannel | None] = ContextVar(
 @dataclass
 class Context:
     webrtc_id: str
+    websocket: WebSocket | None = None
 
 
 current_context: ContextVar[Context | None] = ContextVar(
@@ -136,7 +151,7 @@ def split_output(
             raise ValueError(
                 "The tuple must have exactly two elements: the data and an instance of AdditionalOutputs."
             )
-        if not isinstance(data[-1], (AdditionalOutputs, CloseStream)):
+        if not isinstance(data[-1], AdditionalOutputs | CloseStream):
             raise ValueError(
                 "The last element of the tuple must be an instance of AdditionalOutputs."
             )
@@ -196,6 +211,8 @@ async def player_worker_decode(
                 layout = "mono"
             elif len(frame) == 3:
                 sample_rate, audio_array, layout = frame
+            else:
+                raise ValueError(f"frame must be of length 2 or 3, got: {len(frame)}")
 
             logger.debug(
                 "received array with shape %s sample rate %s layout %s",
@@ -208,7 +225,7 @@ async def player_worker_decode(
                 first_sample_rate = sample_rate
 
             if format == "s16":
-                audio_array = audio_to_float32((sample_rate, audio_array))
+                audio_array = audio_to_float32(audio_array)
 
             if first_sample_rate != sample_rate:
                 audio_array = librosa.resample(
@@ -316,17 +333,15 @@ def audio_to_file(audio: tuple[int, NDArray[np.int16 | np.float32]]) -> str:
 
 
 def audio_to_float32(
-    audio: tuple[int, NDArray[np.int16 | np.float32]],
+    audio: NDArray[np.int16 | np.float32] | tuple[int, NDArray[np.int16 | np.float32]],
 ) -> NDArray[np.float32]:
     """
     Convert an audio tuple containing sample rate (int16) and numpy array data to float32.
 
     Parameters
     ----------
-    audio : tuple[int, np.ndarray]
-        A tuple containing:
-            - sample_rate (int): The audio sample rate in Hz
-            - data (np.ndarray): The audio data as a numpy array
+    audio : np.ndarray
+        The audio data as a numpy array
 
     Returns
     -------
@@ -335,26 +350,39 @@ def audio_to_float32(
 
     Example
     -------
-    >>> sample_rate = 44100
     >>> audio_data = np.array([0.1, -0.2, 0.3])  # Example audio samples
-    >>> audio_tuple = (sample_rate, audio_data)
-    >>> audio_float32 = audio_to_float32(audio_tuple)
+    >>> audio_float32 = audio_to_float32(audio_data)
     """
-    return audio[1].astype(np.float32) / 32768.0
+    if isinstance(audio, tuple):
+        warnings.warn(
+            UserWarning(
+                "Passing a (sr, audio) tuple to audio_to_float32() is deprecated "
+                "and will be removed in a future release. Pass only the audio array."
+            ),
+            stacklevel=2,  # So that the warning points to the user's code
+        )
+        _sr, audio = audio
+
+    if audio.dtype == np.int16:
+        # Divide by 32768.0 so that the values are in the range [-1.0, 1.0).
+        # 1.0 can actually never be reached because the int16 range is [-32768, 32767].
+        return audio.astype(np.float32) / 32768.0
+    elif audio.dtype == np.float32:
+        return audio  # type: ignore
+    else:
+        raise TypeError(f"Unsupported audio data type: {audio.dtype}")
 
 
 def audio_to_int16(
-    audio: tuple[int, NDArray[np.int16 | np.float32]],
+    audio: NDArray[np.int16 | np.float32] | tuple[int, NDArray[np.int16 | np.float32]],
 ) -> NDArray[np.int16]:
     """
     Convert an audio tuple containing sample rate and numpy array data to int16.
 
     Parameters
     ----------
-    audio : tuple[int, np.ndarray]
-        A tuple containing:
-            - sample_rate (int): The audio sample rate in Hz
-            - data (np.ndarray): The audio data as a numpy array
+    audio : np.ndarray
+        The audio data as a numpy array
 
     Returns
     -------
@@ -363,18 +391,27 @@ def audio_to_int16(
 
     Example
     -------
-    >>> sample_rate = 44100
     >>> audio_data = np.array([0.1, -0.2, 0.3], dtype=np.float32)  # Example audio samples
-    >>> audio_tuple = (sample_rate, audio_data)
-    >>> audio_int16 = audio_to_int16(audio_tuple)
+    >>> audio_int16 = audio_to_int16(audio_data)
     """
-    if audio[1].dtype == np.int16:
-        return audio[1]  # type: ignore
-    elif audio[1].dtype == np.float32:
-        # Convert float32 to int16 by scaling to the int16 range
-        return (audio[1] * 32767.0).astype(np.int16)
+    if isinstance(audio, tuple):
+        warnings.warn(
+            UserWarning(
+                "Passing a (sr, audio) tuple to audio_to_float32() is deprecated "
+                "and will be removed in a future release. Pass only the audio array."
+            ),
+            stacklevel=2,  # So that the warning points to the user's code
+        )
+        _sr, audio = audio
+
+    if audio.dtype == np.int16:
+        return audio  # type: ignore
+    elif audio.dtype == np.float32:
+        # Convert float32 to int16 by scaling to the int16 range.
+        # Multiply by 32767 and not 32768 so that int16 doesn't overflow.
+        return (audio * 32767.0).astype(np.int16)
     else:
-        raise TypeError(f"Unsupported audio data type: {audio[1].dtype}")
+        raise TypeError(f"Unsupported audio data type: {audio.dtype}")
 
 
 def aggregate_bytes_to_16bit(chunks_iterator):
@@ -483,3 +520,15 @@ async def wait_for_item(queue: asyncio.Queue, timeout: float = 0.1) -> Any:
         return await asyncio.wait_for(queue.get(), timeout=timeout)
     except (TimeoutError, asyncio.TimeoutError):
         return None
+
+
+RTCConfigurationCallable = (
+    Callable[[], dict[str, Any]]
+    | Callable[[], Coroutine[dict[str, Any], Any, dict[str, Any]]]
+    | Callable[[str | None, str | None, str | None], dict[str, Any]]
+    | Callable[
+        [str | None, str | None, str | None],
+        Coroutine[dict[str, Any], Any, dict[str, Any]],
+    ]
+    | dict[str, Any]
+)

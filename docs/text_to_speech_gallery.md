@@ -62,7 +62,7 @@ document.querySelectorAll('.tag-button').forEach(button => {
     <video src="https://github.com/user-attachments/assets/54dfffc9-1981-4d12-b4d1-eb68ab27e5ad" controls style="text-align: center"></video>
 
     
-    [:octicons-code-16: Repository]([Orpheus.cpp](https://github.com/freddyaboulton/orpheus-cpp))
+    [:octicons-code-16: Repository](https://github.com/freddyaboulton/orpheus-cpp)
 
 -   :speaking_head:{ .lg .middle }:eyes:{ .lg .middle } __Your TTS Model__
 {: data-tags="pytorch"}
@@ -125,4 +125,4 @@ document.querySelectorAll('.tag-button').forEach(button => {
     stream.ui.launch()
     ```
 
-3. Open a [PR](https://github.com/freddyaboulton/fastrtc/edit/main/docs/text_to_speech_gallery.md) to add your model to the gallery! Ideally your model package should be pip installable so other can try it out easily.
+3. Open a [PR](https://github.com/freddyaboulton/fastrtc/edit/main/docs/text_to_speech_gallery.md) to add your model to the gallery! Ideally your model package should be pip installable so others can try it out easily.

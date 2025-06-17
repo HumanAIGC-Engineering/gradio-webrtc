@@ -1,4 +1,4 @@
-fastrtc
+fastrtc==0.0.23.rc1
 python-dotenv
 google-genai
 twilio
