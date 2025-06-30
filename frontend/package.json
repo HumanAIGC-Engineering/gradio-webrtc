@@ -21,7 +21,7 @@
     "base64-js": "^1.5.1",
     "buffer": "^6.0.3",
     "eventemitter3": "^5.0.1",
-    "gaussian-splat-renderer-for-lam": "^0.0.6",
+    "gaussian-splat-renderer-for-lam": "^0.0.8",
     "hls.js": "^1.5.16",
     "mrmime": "^2.0.0",
     "p-queue": "^8.0.1",
